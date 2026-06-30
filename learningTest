@@ -1,0 +1,160 @@
+import React, { useEffect, useState } from "react";
+import {
+  TextField,
+  Paper,
+  List,
+  ListItemButton,
+  ListItemText,
+  Stack,
+} from "@mui/material";
+
+const API_KEY = "YOUR_GOOGLE_API_KEY";
+
+export default function CompanyAddressForm() {
+  const [address, setAddress] = useState("");
+  const [predictions, setPredictions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [zipcode, setZipcode] = useState("");
+
+  useEffect(() => {
+    if (!address || address.length < 3) {
+      setPredictions([]);
+      return;
+    }
+
+    const timeout = setTimeout(async () => {
+      setLoading(true);
+
+      const res = await fetch(
+        "https://places.googleapis.com/v1/places:autocomplete",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": API_KEY,
+          },
+          body: JSON.stringify({
+            input: address,
+            includedRegionCodes: ["us"],
+          }),
+        }
+      );
+
+      const data = await res.json();
+      setPredictions(data.suggestions || []);
+      setLoading(false);
+    }, 400);
+
+    return () => clearTimeout(timeout);
+  }, [address]);
+
+  const getAddressValue = (
+    components: any[],
+    type: string,
+    shortName = false
+  ) => {
+    const component = components.find((c) => c.types?.includes(type));
+    return shortName ? component?.shortText || "" : component?.longText || "";
+  };
+
+  const getPlaceDetails = async (placeId: string) => {
+    const res = await fetch(
+      `https://places.googleapis.com/v1/places/${placeId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": API_KEY,
+          "X-Goog-FieldMask": "formattedAddress,addressComponents",
+        },
+      }
+    );
+
+    return res.json();
+  };
+
+  const handleSelect = async (suggestion: any) => {
+    const prediction = suggestion.placePrediction;
+
+    const selectedAddress = prediction?.text?.text || "";
+    const placeId = prediction?.placeId;
+
+    setAddress(selectedAddress);
+    setPredictions([]);
+
+    if (!placeId) return;
+
+    const placeDetails = await getPlaceDetails(placeId);
+    const components = placeDetails.addressComponents || [];
+
+    const cityValue =
+      getAddressValue(components, "locality") ||
+      getAddressValue(components, "postal_town") ||
+      getAddressValue(components, "administrative_area_level_2");
+
+    const stateValue = getAddressValue(
+      components,
+      "administrative_area_level_1",
+      true
+    );
+
+    const zipValue = getAddressValue(components, "postal_code");
+
+    setCity(cityValue);
+    setState(stateValue);
+    setZipcode(zipValue);
+  };
+
+  return (
+    <Stack spacing={2} sx={{ width: 400, position: "relative" }}>
+      <div style={{ position: "relative" }}>
+        <TextField
+          fullWidth
+          label="Address"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          helperText={loading ? "Loading..." : ""}
+        />
+
+        {predictions.length > 0 && (
+          <Paper
+            elevation={3}
+            sx={{
+              position: "absolute",
+              zIndex: 10,
+              width: "100%",
+              mt: 0.5,
+            }}
+          >
+            <List dense>
+              {predictions.map((item, index) => {
+                const prediction = item.placePrediction;
+
+                return (
+                  <ListItemButton
+                    key={prediction?.placeId || index}
+                    onClick={() => handleSelect(item)}
+                  >
+                    <ListItemText
+                      primary={prediction?.structuredFormat?.mainText?.text}
+                      secondary={
+                        prediction?.structuredFormat?.secondaryText?.text
+                      }
+                    />
+                  </ListItemButton>
+                );
+              })}
+            </List>
+          </Paper>
+        )}
+      </div>
+
+      <TextField label="City" value={city} onChange={(e) => setCity(e.target.value)} />
+      <TextField label="State" value={state} onChange={(e) => setState(e.target.value)} />
+      <TextField label="Zipcode" value={zipcode} onChange={(e) => setZipcode(e.target.value)} />
+    </Stack>
+  );
+}
