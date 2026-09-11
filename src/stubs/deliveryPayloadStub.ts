@@ -6,7 +6,7 @@ const PAYLOADS: Record<string, Record<string, unknown>> = {
     status: 'failed',
     source: 'DIRECT DEPOSIT1',
     meta: {
-      tenantId: 'FCB',
+      tenantId: 'TENANT1',
       createdAt: '2026-09-10T15:56:02.497'
     },
     request: {

@@ -33,7 +33,7 @@ const DELIVERIES: DeliveryApiItem[] = [
       cc: ['sam.prad@test.com', 'sam.prad2@test.com'],
       bcc: ['sam.prad@test.com', 'sam.prad2@test.com']
     },
-    tenantId: 'FCB',
+    tenantId: 'TENANT1',
     correlationId: '24ba5d35-7bb1-48be-8a48-1c6c875b995a',
     customerId: '123',
     recipientType: 'CUSTOMER',
@@ -65,7 +65,7 @@ const DELIVERIES: DeliveryApiItem[] = [
       cc: [],
       bcc: []
     },
-    tenantId: 'FCB',
+    tenantId: 'TENANT1',
     correlationId: '00000191-0000-4000-8000-000000000191',
     customerId: '1001',
     recipientType: 'CUSTOMER',
@@ -154,7 +154,7 @@ const DELIVERIES: DeliveryApiItem[] = [
       cc: [],
       bcc: []
     },
-    tenantId: 'FCB',
+    tenantId: 'TENANT1',
     correlationId: '0000019b-0000-4000-8000-00000000019b',
     customerId: '1011',
     recipientType: 'PROSPECT',
@@ -369,7 +369,7 @@ const DELIVERIES: DeliveryApiItem[] = [
       cc: ['cc+6@test.com'],
       bcc: []
     },
-    tenantId: 'FCB',
+    tenantId: 'TENANT1',
     correlationId: '00000196-0000-4000-8000-000000000196',
     customerId: '1006',
     recipientType: 'EMPLOYEE',
@@ -464,7 +464,7 @@ const DELIVERIES: DeliveryApiItem[] = [
       cc: [],
       bcc: ['bcc+16@test.com']
     },
-    tenantId: 'FCB',
+    tenantId: 'TENANT1',
     correlationId: '000001a0-0000-4000-8000-0000000001a0',
     customerId: '1016',
     recipientType: 'CUSTOMER',
@@ -724,7 +724,7 @@ const DELIVERIES: DeliveryApiItem[] = [
       cc: [],
       bcc: []
     },
-    tenantId: 'FCB',
+    tenantId: 'TENANT1',
     correlationId: '000001aa-0000-4000-8000-0000000001aa',
     customerId: '1026',
     recipientType: 'PROSPECT',
@@ -895,7 +895,7 @@ const DELIVERIES: DeliveryApiItem[] = [
       cc: ['cc+36@test.com'],
       bcc: ['bcc+36@test.com']
     },
-    tenantId: 'FCB',
+    tenantId: 'TENANT1',
     correlationId: '000001b4-0000-4000-8000-0000000001b4',
     customerId: '1036',
     recipientType: 'EMPLOYEE',
@@ -977,7 +977,7 @@ const DELIVERIES: DeliveryApiItem[] = [
       cc: [],
       bcc: []
     },
-    tenantId: 'FCB',
+    tenantId: 'TENANT1',
     correlationId: '000001b9-0000-4000-8000-0000000001b9',
     customerId: '1001',
     recipientType: 'PROSPECT',
@@ -1128,7 +1128,7 @@ const DELIVERIES: DeliveryApiItem[] = [
       cc: ['cc+21@test.com'],
       bcc: []
     },
-    tenantId: 'FCB',
+    tenantId: 'TENANT1',
     correlationId: '000001a5-0000-4000-8000-0000000001a5',
     customerId: '1021',
     recipientType: 'EMPLOYEE',
