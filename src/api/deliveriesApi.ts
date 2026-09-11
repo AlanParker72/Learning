@@ -27,7 +27,7 @@ export type SearchField = 'customerId' | 'prospectId' | 'source'
 export type DeliveryComment = {
   id: string
   comment: string
-  /** Clean UI field mapped from API `action` or typo `acttion`. */
+  /** Clean UI field mapped from API wire `acttion` (or corrected `action`). */
   action: string
   commentedBy: string
   commentedDate: string

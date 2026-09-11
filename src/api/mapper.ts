@@ -79,13 +79,13 @@ export const mapDeliveryAction = (value: unknown): DeliveryActionType => {
 }
 
 /**
- * Map a comment row. Accepts API typo `acttion` as well as `action`.
+ * Map a comment row. Prefers wire field `acttion`; tolerates corrected `action`.
  * Missing / null comments arrays are handled by the caller — this never throws.
  */
 export const mapDeliveryComment = (raw: DeliveryCommentApi | Record<string, unknown>, index = 0): DeliveryComment => {
   const record: Record<string, unknown> = isRecord(raw) ? { ...raw } : {}
-  // Prefer correct `action`; fall back to API typo `acttion`.
-  const rawAction = asString(record.action ?? record.acttion).trim()
+  // Prefer API wire typo `acttion`; fall back to corrected `action` if present.
+  const rawAction = asString(record.acttion ?? record.action).trim()
   return {
     id: asString(record.id, `comment-${index}`),
     comment: asString(record.comment),

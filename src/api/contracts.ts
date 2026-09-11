@@ -60,27 +60,29 @@ export type DashboardChannelResponseApi = {
 
 /**
  * Raw delivery comment from deliveries list contract.
- * API may send typo field `acttion` (double t) instead of `action`.
+ * Wire field is `acttion` (API typo, double t). `action` is tolerated if ever corrected.
  */
 export type DeliveryCommentApi = {
   comment: string
-  action?: string
-  /** API typo — double t. Prefer `action` when both present. */
+  /** API wire field (typo: double t). */
   acttion?: string
+  /** Tolerated alternate if API sends corrected spelling. */
+  action?: string
   commentedBy: string
   commentedDate: string
 }
 
 /**
  * Raw delivery list item from GET /alerts-admin/v1/deliveries.
+ * Field names match the API response exactly.
  * `function` is the API field name (reserved word in JS — access via bracket or mapper).
  */
 export type DeliveryApiItem = {
   referenceId: number
   recipients: {
-    to?: string[]
-    cc?: string[]
-    bcc?: string[]
+    to: string[]
+    cc: string[]
+    bcc: string[]
   }
   tenantId: string
   correlationId: string

@@ -44,13 +44,14 @@ const PAYLOADS: Record<string, Record<string, unknown>> = {
   }
 }
 
-const defaultPayload = (referenceId: string): Record<string, unknown> => ({
-  referenceId,
+/** Fallback static payload when no keyed sample exists. */
+const DEFAULT_PAYLOAD: Record<string, unknown> = {
+  referenceId: 0,
   status: 'processed',
   source: 'stub',
   meta: {
-    correlationId: `corr-${referenceId}`,
-    createdAt: new Date().toISOString()
+    correlationId: 'corr-default',
+    createdAt: '2026-09-11T08:00:00.000'
   },
   request: {
     channel: 'MARKETO EMAIL',
@@ -61,9 +62,9 @@ const defaultPayload = (referenceId: string): Record<string, unknown> => ({
     attempts: 1,
     retryable: false
   }
-})
+}
 
 /** GET /alerts-admin/v1/deliveries/{messageId}/payload stub — id is String(referenceId). */
 export function getDeliveryPayloadStub(messageId: string): Record<string, unknown> {
-  return PAYLOADS[messageId] ?? defaultPayload(messageId)
+  return PAYLOADS[messageId] ?? DEFAULT_PAYLOAD
 }
