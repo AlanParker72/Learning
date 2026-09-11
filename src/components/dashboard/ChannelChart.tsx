@@ -69,10 +69,10 @@ export default function ChannelChart({ data, range, onRangeChange, loading = fal
                   px: 1.25,
                   py: 0.4,
                   borderRadius: 999,
-                  background: active ? brand.link : 'transparent',
+                  background: active ? brand.tableHeader : 'transparent',
                   color: active ? '#fff' : brand.textMuted,
                   fontWeight: 800,
-                  '&:hover': { background: active ? brand.linkHover : brand.hoverLight }
+                  '&:hover': { background: active ? brand.tableHeader : brand.hoverLight }
                 }}
               >
                 {option.label}

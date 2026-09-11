@@ -58,6 +58,21 @@ const chart = {
   pushBg: '#eef6f1'
 } as const
 
+/** Stacked status bar + KPI accents — vivid pastel-bright (clear, not muddy/neon). */
+const metrics = {
+  sent: '#6fd4a4',
+  queued: '#f5cc6e',
+  failed: '#f2958a',
+  acknowledged: '#7ab8eb'
+} as const
+
+const status = {
+  sent: { bg: '#e8faf0', color: metrics.sent },
+  queued: { bg: '#fef8e8', color: metrics.queued },
+  failed: { bg: '#fef0ee', color: metrics.failed },
+  acknowledged: { bg: '#eaf4fc', color: metrics.acknowledged }
+} as const
+
 export const brand = {
   primary: '#1a3a1a',
   primaryDark: '#142e14',
@@ -90,19 +105,12 @@ export const brand = {
   chart,
   /** Full delivery-list enum palette (color / background / border). */
   deliveryStatus,
-  /** Aggregate dashboard KPI status (maps onto deliveryStatus tokens). */
-  status: {
-    sent: { bg: deliveryStatus.COMPLETE.background, color: deliveryStatus.COMPLETE.color },
-    queued: { bg: deliveryStatus.QUEUED.background, color: deliveryStatus.QUEUED.color },
-    failed: { bg: deliveryStatus.FAILED_RETRY.background, color: deliveryStatus.FAILED_RETRY.color },
-    acknowledged: { bg: deliveryStatus.ACKNOWLEDGED.background, color: deliveryStatus.ACKNOWLEDGED.color }
-  },
-  metrics: {
-    sent: deliveryStatus.COMPLETE.color,
-    queued: deliveryStatus.QUEUED.color,
-    failed: deliveryStatus.FAILED_RETRY.color,
-    acknowledged: deliveryStatus.ACKNOWLEDGED.color
-  },
+  /**
+   * Status bar series + KPI accents. Delivery-list chips keep `deliveryStatus` soft pastels.
+   */
+  metrics,
+  /** Aggregate dashboard KPI status (shares `metrics` series accents). */
+  status,
   gridStroke: '#e8edf4',
   tick: '#85919f',
   actionColors: {
