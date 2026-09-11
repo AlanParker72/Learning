@@ -19,72 +19,78 @@ export default function MetricCard({ label, value, color, iconBg, icon }: Metric
       sx={{
         position: 'relative',
         overflow: 'hidden',
-        p: 2.25,
-        borderRadius: 2.5,
+        px: 2.5,
+        py: 2.25,
+        borderRadius: 3,
         border: `1px solid ${brand.border}`,
         boxShadow: brand.shadow.card,
-        minHeight: 118,
-        background: brand.surface
+        minHeight: 112,
+        background: brand.surface,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        transition: 'box-shadow 160ms ease, border-color 160ms ease',
+        '&:hover': {
+          borderColor: brand.border,
+          boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)'
+        },
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 3,
+          background: color,
+          opacity: 0.85
+        }
       }}
     >
-      <Stack direction="row" spacing={1.5} alignItems="flex-start">
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1.5}>
+        <Typography
+          sx={{
+            fontWeight: 600,
+            fontSize: 13,
+            lineHeight: 1.35,
+            letterSpacing: '0.01em',
+            color: brand.textMuted,
+            pt: 0.35
+          }}
+        >
+          {label}
+        </Typography>
+
         <Box
           sx={{
-            width: 44,
-            height: 44,
-            borderRadius: 1.75,
+            width: 42,
+            height: 42,
+            borderRadius: '50%',
             background: iconBg,
             color,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
-            '& .MuiSvgIcon-root': { fontSize: 22 }
+            boxShadow: brand.shadow.insetBorderSubtle,
+            '& .MuiSvgIcon-root': { fontSize: 20 }
           }}
         >
           {icon}
         </Box>
-
-        <Box sx={{ minWidth: 0, flex: 1, pt: 0.15 }}>
-          <Typography
-            sx={{
-              fontWeight: 600,
-              fontSize: 14,
-              lineHeight: 1.3,
-              color: brand.text,
-              mb: 0.65
-            }}
-          >
-            {label}
-          </Typography>
-          <Typography
-            sx={{
-              fontWeight: 800,
-              fontSize: 30,
-              lineHeight: 1,
-              letterSpacing: '-0.03em',
-              color: brand.text,
-              fontVariantNumeric: 'tabular-nums'
-            }}
-          >
-            {formatNumber(value)}
-          </Typography>
-        </Box>
       </Stack>
 
       <Typography
-        variant="caption"
         sx={{
-          position: 'absolute',
-          right: 16,
-          bottom: 14,
-          fontSize: 12,
-          fontWeight: 500,
-          color: brand.textMuted,
-          lineHeight: 1
+          fontWeight: 800,
+          fontSize: 32,
+          lineHeight: 1,
+          letterSpacing: '-0.04em',
+          color: brand.text,
+          fontVariantNumeric: 'tabular-nums',
+          mt: 1.75
         }}
       >
-        Range total
+        {formatNumber(value)}
       </Typography>
     </Paper>
   )

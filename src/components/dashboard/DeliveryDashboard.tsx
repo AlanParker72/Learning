@@ -51,10 +51,10 @@ export default function DeliveryDashboard() {
         >
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.04em', mb: 0.5, fontSize: { xs: 28, md: 32 } }}>
-              Delivery Performance
+              Distribution Services Dashboard
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Real-time overview of message delivery across all channels
+              Overview of message delivery across all channels
             </Typography>
           </Box>
 
@@ -84,7 +84,7 @@ export default function DeliveryDashboard() {
           {dashboard.metrics.length === 0
             ? Array.from({ length: 4 }).map((_, index) => (
                 <Grid item xs={12} sm={6} md={3} key={index}>
-                  <Skeleton variant="rounded" height={118} />
+                  <Skeleton variant="rounded" height={112} />
                 </Grid>
               ))
             : dashboard.metrics.map((card) => (
