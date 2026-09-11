@@ -66,9 +66,10 @@ export default function DeliveryFiltersBar({ filters, onChange, onSearch, onRese
       />
 
       <FormControl size="small" sx={{ ...fieldSx, minWidth: 180 }}>
-        <InputLabel>Delivery Status</InputLabel>
+        <InputLabel shrink>Delivery Status</InputLabel>
         <Select
           multiple
+          displayEmpty
           label="Delivery Status"
           value={filters.status}
           renderValue={(selected) => (selected.length > 0 ? selected.join(', ') : 'All')}

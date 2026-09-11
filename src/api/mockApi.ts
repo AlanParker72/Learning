@@ -87,8 +87,20 @@ const searchValue = (item: Delivery, field: SearchField): string => {
   }
 }
 
+const formatSampleDate = (date: Date): string => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = date.getHours()
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const meridiem = hours >= 12 ? 'PM' : 'AM'
+  const hour12 = hours % 12 || 12
+  return `${year}/${month}/${day} ${String(hour12).padStart(2, '0')}:${minutes} ${meridiem}`
+}
+
 const buildSampleData = (range: 'ONE_WEEK' | 'TWO_WEEKS' = 'TWO_WEEKS'): Delivery[] => {
   const totalCount = range === 'ONE_WEEK' ? 180 : 412
+  const spanDays = range === 'ONE_WEEK' ? 7 : 14
 
   return Array.from({ length: totalCount }, (_, index) => {
     const recipientType = recipients[index % recipients.length]
@@ -99,23 +111,28 @@ const buildSampleData = (range: 'ONE_WEEK' | 'TWO_WEEKS' = 'TWO_WEEKS'): Deliver
     const channel = channels[index % channels.length]
     const padded = String(index + 1).padStart(3, '0')
     const refId = `Item ${index + 1}`
-    const day = String((index % 28) + 1).padStart(2, '0')
-    const hour = String((index % 12) + 8).padStart(2, '0')
-    const month = range === 'ONE_WEEK' ? '09' : '08'
     const trackingId = `TRK-${String(index + 10000).padStart(8, '0')}`
+    const occurredAt = new Date()
+    occurredAt.setDate(occurredAt.getDate() - (index % spanDays))
+    occurredAt.setHours(8 + (index % 12), (index * 13) % 60, 0, 0)
+    const dateTime = formatSampleDate(occurredAt)
     const commentCount = (index % 4) + 1
-    const comments: DeliveryComment[] = Array.from({ length: commentCount }, (_, commentIndex) => ({
-      id: `${index + 1}-${commentIndex + 1}`,
-      comment: [
-        `Delivery ${commentIndex % 2 === 0 ? 'acknowledgement' : 'resend'} confirmation for ${refId}. ${source} workflow processed with ${channel.toLowerCase()} routing.`,
-        `Customer override applied for ${tenant} tenant with ${recipientType.toLowerCase()} profile.`,
-        `Retry logic reviewed by ${functionName} and approved for downstream processing.`,
-        `Operational follow-up: queue is cleared and tracking id ${trackingId} is marked for the next cycle.`
-      ][commentIndex % 4],
-      action: commentIndex % 2 === 0 ? 'acknowledge' : 'resend',
-      commentedBy: ['Ops Team', 'Support Queue', 'Compliance Review', 'Delivery Manager'][commentIndex % 4],
-      commentedDate: `2026/${month}/${day} ${String((index + commentIndex) % 12 + 8).padStart(2, '0')}:${String((commentIndex * 11 + 5) % 60).padStart(2, '0')} ${commentIndex % 2 === 0 ? 'AM' : 'PM'}`
-    }))
+    const comments: DeliveryComment[] = Array.from({ length: commentCount }, (_, commentIndex) => {
+      const commentedAt = new Date(occurredAt)
+      commentedAt.setMinutes(occurredAt.getMinutes() + commentIndex * 17)
+      return {
+        id: `${index + 1}-${commentIndex + 1}`,
+        comment: [
+          `Delivery ${commentIndex % 2 === 0 ? 'acknowledgement' : 'resend'} confirmation for ${refId}. ${source} workflow processed with ${channel.toLowerCase()} routing.`,
+          `Customer override applied for ${tenant} tenant with ${recipientType.toLowerCase()} profile.`,
+          `Retry logic reviewed by ${functionName} and approved for downstream processing.`,
+          `Operational follow-up: queue is cleared and tracking id ${trackingId} is marked for the next cycle.`
+        ][commentIndex % 4],
+        action: commentIndex % 2 === 0 ? 'acknowledge' : 'resend',
+        commentedBy: ['Ops Team', 'Support Queue', 'Compliance Review', 'Delivery Manager'][commentIndex % 4],
+        commentedDate: formatSampleDate(commentedAt)
+      }
+    })
 
     return {
       id: String(index + 1),
@@ -129,7 +146,7 @@ const buildSampleData = (range: 'ONE_WEEK' | 'TWO_WEEKS' = 'TWO_WEEKS'): Deliver
       tenant,
       source,
       functionName,
-      dateTime: `2026/${month}/${day} ${hour}:00 ${index % 2 === 0 ? 'AM' : 'PM'}`,
+      dateTime,
       deliveryStatus: status,
       channel,
       comments,

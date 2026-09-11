@@ -199,7 +199,7 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
         </Alert>
       )}
 
-      <TableContainer sx={{ border: `1px solid ${brand.border}`, borderRadius: 2, overflow: 'auto', maxHeight: 560 }}>
+      <TableContainer sx={{ border: `1px solid ${brand.border}`, borderRadius: 2, overflow: 'auto' }}>
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
