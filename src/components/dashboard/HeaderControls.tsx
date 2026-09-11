@@ -1,5 +1,5 @@
 import { Box, Button, Stack, Typography } from '@mui/material'
-import { CalendarMonthOutlined, ScheduleOutlined } from '@mui/icons-material'
+import { CalendarMonthOutlined, Sync } from '@mui/icons-material'
 import type { DashboardRangeUi } from '../../api/contracts'
 import { brand } from '../../theme/brand'
 
@@ -75,7 +75,7 @@ export default function HeaderControls({
       </Box>
 
       <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: brand.muted }}>
-        <ScheduleOutlined fontSize="small" />
+        <Sync fontSize="small" />
         <Typography variant="body2">Last updated: {lastUpdatedLabel}</Typography>
       </Stack>
     </Stack>
