@@ -2,20 +2,21 @@ import { Box, CircularProgress, FormControl, IconButton, MenuItem, Paper, Select
 import { InfoOutlined } from '@mui/icons-material'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useMemo, useState } from 'react'
-import type { DashboardStatusPoint } from '../../api/dashboardStatusApi'
+import type { DashboardChannelPoint } from '../../api/dashboardStatusApi'
 import { brand } from '../../theme/brand'
 import { formatChartTick } from '../../utils/format'
 
 type ChannelChartProps = {
-  data: DashboardStatusPoint[]
+  data: DashboardChannelPoint[]
   loading?: boolean
 }
 
 type GroupBy = 'day' | 'week'
 
 const SERIES = [
-  { key: 'marketEmail', label: 'Marketplace Email', color: brand.chart.marketEmail, dashed: false },
-  { key: 'internalEmail', label: 'Internal Email', color: brand.chart.internalEmail, dashed: true }
+  { key: 'marketToEmail', label: 'Marketplace Email', color: brand.chart.marketToEmail, dashed: false },
+  { key: 'smtp', label: 'SMTP', color: brand.chart.smtp, dashed: true },
+  { key: 'push', label: 'Push', color: brand.chart.push, dashed: false }
 ] as const
 
 const weekKey = (isoDate: string): string => {
@@ -32,26 +33,29 @@ export default function ChannelChart({ data, loading = false }: ChannelChartProp
     if (groupBy === 'day') {
       return data.map((item) => ({
         date: formatChartTick(item.date),
-        marketEmail: item.marketEmail,
-        internalEmail: item.internalEmail
+        marketToEmail: item.marketToEmail,
+        smtp: item.smtp,
+        push: item.push
       }))
     }
 
-    const grouped = new Map<string, { marketEmail: number; internalEmail: number; count: number }>()
+    const grouped = new Map<string, { marketToEmail: number; smtp: number; push: number; count: number }>()
     data.forEach((item) => {
       const key = weekKey(item.date)
-      const current = grouped.get(key) ?? { marketEmail: 0, internalEmail: 0, count: 0 }
+      const current = grouped.get(key) ?? { marketToEmail: 0, smtp: 0, push: 0, count: 0 }
       grouped.set(key, {
-        marketEmail: current.marketEmail + item.marketEmail,
-        internalEmail: current.internalEmail + item.internalEmail,
+        marketToEmail: current.marketToEmail + item.marketToEmail,
+        smtp: current.smtp + item.smtp,
+        push: current.push + item.push,
         count: current.count + 1
       })
     })
 
     return Array.from(grouped.entries()).map(([date, values]) => ({
       date: `Week of ${formatChartTick(date)}`,
-      marketEmail: Math.round(values.marketEmail / values.count),
-      internalEmail: Math.round(values.internalEmail / values.count)
+      marketToEmail: Math.round(values.marketToEmail / values.count),
+      smtp: Math.round(values.smtp / values.count),
+      push: Math.round(values.push / values.count)
     }))
   }, [data, groupBy])
 

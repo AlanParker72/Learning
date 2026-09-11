@@ -96,17 +96,21 @@ export default function DeliveryDashboard() {
               ))}
         </Grid>
 
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} lg={7}>
-            <StatusChart
-              data={dashboard.statusResponse?.data ?? []}
-              range={dashboard.statusRange}
-              onRangeChange={dashboard.setStatusRange}
-              loading={dashboard.statusLoading}
-            />
+        <Grid container spacing={2} sx={{ mb: 3 }} alignItems="stretch">
+          <Grid item xs={12} lg={7} sx={{ display: 'flex' }}>
+            <Box sx={{ width: '100%', display: 'flex', '& > *': { flex: 1 } }}>
+              <StatusChart
+                data={dashboard.statusResponse?.data ?? []}
+                range={dashboard.statusRange}
+                onRangeChange={dashboard.setStatusRange}
+                loading={dashboard.statusLoading}
+              />
+            </Box>
           </Grid>
-          <Grid item xs={12} lg={5}>
-            <ChannelChart data={dashboard.channelResponse?.data ?? []} loading={dashboard.channelLoading} />
+          <Grid item xs={12} lg={5} sx={{ display: 'flex' }}>
+            <Box sx={{ width: '100%', display: 'flex', '& > *': { flex: 1 } }}>
+              <ChannelChart data={dashboard.channelResponse?.data ?? []} loading={dashboard.channelLoading} />
+            </Box>
           </Grid>
         </Grid>
 

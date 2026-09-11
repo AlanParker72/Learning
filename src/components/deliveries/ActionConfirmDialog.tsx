@@ -6,7 +6,6 @@ type ActionConfirmDialogProps = {
   action: DeliveryActionType | null
   comment: string
   submitting: boolean
-  count?: number
   referenceLabel?: string
   onCommentChange: (value: string) => void
   onClose: () => void
@@ -17,23 +16,19 @@ export default function ActionConfirmDialog({
   action,
   comment,
   submitting,
-  count = 1,
   referenceLabel,
   onCommentChange,
   onClose,
   onSubmit
 }: ActionConfirmDialogProps) {
   const isValid = comment.trim().length > 0
-  const isBulk = count > 1
-  const title = action === 'acknowledge'
-    ? (isBulk ? `Acknowledge ${count} deliveries` : 'Acknowledge delivery')
-    : (isBulk ? `Resend ${count} deliveries` : 'Resend delivery')
+  const title = action === 'acknowledge' ? 'Acknowledge delivery' : 'Resend delivery'
 
   return (
     <Dialog open={Boolean(action)} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontWeight: 800 }}>{title}</DialogTitle>
       <DialogContent>
-        {referenceLabel && !isBulk && (
+        {referenceLabel && (
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
             {referenceLabel}
           </Typography>

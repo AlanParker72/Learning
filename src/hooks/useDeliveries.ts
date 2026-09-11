@@ -64,7 +64,6 @@ export function useDeliveries(range: DashboardRangeUi) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [total, setTotal] = useState(0)
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [sortField, setSortField] = useState<DeliverySortField>('dateTime')
   const [sortDir, setSortDir] = useState<DeliverySortDir>('desc')
   const [commentOverrides, setCommentOverrides] = useState<Record<string, DeliveryComment[]>>({})
@@ -90,7 +89,6 @@ export function useDeliveries(range: DashboardRangeUi) {
         const result = await fetchDeliveries(query)
         setRows(result.items)
         setTotal(result.total)
-        setSelectedIds((current) => current.filter((id) => result.items.some((item) => item.id === id)))
         setError(null)
       } catch (cause) {
         setError(errorMessage(cause))
@@ -115,14 +113,12 @@ export function useDeliveries(range: DashboardRangeUi) {
   const applyFilters = useCallback(() => {
     setAppliedFilters(draftFilters)
     setPage(1)
-    setSelectedIds([])
   }, [draftFilters])
 
   const resetFilters = useCallback(() => {
     setDraftFilters(DEFAULT_DELIVERY_FILTERS)
     setAppliedFilters(DEFAULT_DELIVERY_FILTERS)
     setPage(1)
-    setSelectedIds([])
   }, [])
 
   const toggleSort = useCallback((field: DeliverySortField) => {
@@ -131,27 +127,8 @@ export function useDeliveries(range: DashboardRangeUi) {
     setPage(1)
   }, [sortField])
 
-  const allVisibleSelected = rows.length > 0 && rows.every((row) => selectedIds.includes(row.id))
-  const someVisibleSelected = rows.some((row) => selectedIds.includes(row.id))
-
-  const toggleAllVisible = useCallback(() => {
-    setSelectedIds((current) => {
-      if (allVisibleSelected) {
-        return current.filter((id) => !rows.some((row) => row.id === id))
-      }
-      const merged = new Set([...current, ...rows.map((row) => row.id)])
-      return Array.from(merged)
-    })
-  }, [allVisibleSelected, rows])
-
-  const toggleRow = useCallback((id: string) => {
-    setSelectedIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]))
-  }, [])
-
-  const clearSelection = useCallback(() => setSelectedIds([]), [])
-
   const commentsFor = useCallback(
-    (row: Delivery): DeliveryComment[] => commentOverrides[row.id] ?? row.comments,
+    (row: Delivery): DeliveryComment[] => commentOverrides[row.messageId] ?? row.comments,
     [commentOverrides]
   )
 
@@ -159,7 +136,7 @@ export function useDeliveries(range: DashboardRangeUi) {
     setCommentOverrides((current) => {
       const next = { ...current }
       ids.forEach((id) => {
-        const existing = next[id] ?? rows.find((row) => row.id === id)?.comments ?? []
+        const existing = next[id] ?? rows.find((row) => row.messageId === id)?.comments ?? []
         next[id] = [comment, ...existing]
       })
       return next
@@ -190,12 +167,6 @@ export function useDeliveries(range: DashboardRangeUi) {
     total,
     pageCount,
     pageNumbers,
-    selectedIds,
-    allVisibleSelected,
-    someVisibleSelected,
-    toggleAllVisible,
-    toggleRow,
-    clearSelection,
     sortField,
     sortDir,
     toggleSort,

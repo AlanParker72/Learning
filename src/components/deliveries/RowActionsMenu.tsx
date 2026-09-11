@@ -1,22 +1,16 @@
-import { Divider, Menu, MenuItem } from '@mui/material'
+import { Menu, MenuItem } from '@mui/material'
 import type { DeliveryActionType } from '../../api/mockApi'
 
 type RowActionsMenuProps = {
   anchorEl: HTMLElement | null
   onClose: () => void
   onAction: (action: DeliveryActionType) => void
-  onViewComments: () => void
-  onViewPayload: () => void
-  onViewRecipients: () => void
 }
 
 export default function RowActionsMenu({
   anchorEl,
   onClose,
-  onAction,
-  onViewComments,
-  onViewPayload,
-  onViewRecipients
+  onAction
 }: RowActionsMenuProps) {
   return (
     <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={onClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
@@ -35,31 +29,6 @@ export default function RowActionsMenu({
         }}
       >
         Resend
-      </MenuItem>
-      <Divider />
-      <MenuItem
-        onClick={() => {
-          onViewComments()
-          onClose()
-        }}
-      >
-        View comments
-      </MenuItem>
-      <MenuItem
-        onClick={() => {
-          onViewPayload()
-          onClose()
-        }}
-      >
-        View input details
-      </MenuItem>
-      <MenuItem
-        onClick={() => {
-          onViewRecipients()
-          onClose()
-        }}
-      >
-        View recipients
       </MenuItem>
     </Menu>
   )

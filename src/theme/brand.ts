@@ -30,10 +30,9 @@ export const brand = {
     linkLight: 'rgba(29, 160, 90, 0.06)'
   },
   chart: {
-    marketEmail: '#2f7cf6',
-    internalEmail: '#ff5f57',
-    smtpEmail: '#ff5f57',
-    pushNotifications: '#22b07d'
+    marketToEmail: '#2f7cf6',
+    smtp: '#ff5f57',
+    push: '#22b07d'
   },
   status: {
     sent: { bg: '#e9f9ef', color: '#2a9d61' },

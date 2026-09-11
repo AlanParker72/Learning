@@ -20,7 +20,7 @@ const SEARCH_BY_OPTIONS: Array<{ label: string; value: SearchField }> = [
 ]
 
 const STATUS_OPTIONS = ['Sent / Re-Sent', 'Queued', 'Failed', 'Acknowledged']
-const CHANNEL_OPTIONS = ['Marketplace Email', 'Internal Email', 'SMTP Email', 'Push Notifications']
+const CHANNEL_OPTIONS = ['Marketplace Email', 'SMTP', 'Push']
 const RANGE_OPTIONS = ['Last 1 hour', 'Last 12 hours', 'Last 24 hours', 'Last 7 days']
 
 const fieldSx = {

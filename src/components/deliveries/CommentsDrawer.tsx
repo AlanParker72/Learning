@@ -11,7 +11,7 @@ import {
 import { Close } from '@mui/icons-material'
 import type { DeliveryComment } from '../../api/mockApi'
 import { brand } from '../../theme/brand'
-import { initialsFromName } from '../../utils/format'
+import { initialsFromName, splitDateTime } from '../../utils/format'
 
 type CommentsDrawerProps = {
   open: boolean
@@ -88,7 +88,10 @@ export default function CommentsDrawer({ open, comments, referenceLabel, onClose
                         />
                       </Stack>
                       <Typography variant="caption" sx={{ color: brand.textMuted, display: 'block', mb: 1 }}>
-                        {comment.commentedDate}
+                        {(() => {
+                          const parts = splitDateTime(comment.commentedDate)
+                          return parts.time ? `${parts.date} ${parts.time}` : comment.commentedDate
+                        })()}
                       </Typography>
                       <Typography variant="body2" sx={{ lineHeight: 1.65 }}>{comment.comment}</Typography>
                     </Box>

@@ -3,7 +3,8 @@ import {
   fetchDashboardStatus,
   fetchDeliveryChannelTrend,
   type DashboardStatusPoint,
-  type DashboardStatusResponse
+  type DashboardStatusResponse,
+  type DashboardChannelResponse
 } from '../api/dashboardStatusApi'
 import { previousPeriodLabel, type DashboardRangeUi } from '../api/contracts'
 import { formatISODate } from '../utils/format'
@@ -65,7 +66,7 @@ export function useDashboardData(initialRange: DashboardRangeUi = 'ONE_WEEK') {
   const [statusRange, setStatusRange] = useState<DashboardRangeUi>(initialRange)
   const [metricsResponse, setMetricsResponse] = useState<DashboardStatusResponse | null>(null)
   const [statusResponse, setStatusResponse] = useState<DashboardStatusResponse | null>(null)
-  const [channelResponse, setChannelResponse] = useState<DashboardStatusResponse | null>(null)
+  const [channelResponse, setChannelResponse] = useState<DashboardChannelResponse | null>(null)
   const [metricsLoading, setMetricsLoading] = useState(false)
   const [statusLoading, setStatusLoading] = useState(false)
   const [channelLoading, setChannelLoading] = useState(false)

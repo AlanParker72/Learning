@@ -2,11 +2,11 @@ import { useCallback, useState } from 'react'
 import {
   Alert,
   Button,
-  Checkbox,
   IconButton,
   Link,
   Paper,
   Skeleton,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -16,11 +16,11 @@ import {
   TableSortLabel,
   Typography
 } from '@mui/material'
-import { MoreVert } from '@mui/icons-material'
+import { ChatBubbleOutline, MoreVert } from '@mui/icons-material'
 import { useSnackbar } from 'notistack'
 import type { DashboardRangeUi } from '../../api/contracts'
 import {
-  fetchInputPayload,
+  fetchDeliveryPayload,
   submitDeliveryAction,
   type Delivery,
   type DeliveryActionType,
@@ -38,7 +38,6 @@ import ActionConfirmDialog from './ActionConfirmDialog'
 import PayloadDrawer from './PayloadDrawer'
 import CommentsDrawer from './CommentsDrawer'
 import RecipientsDialog from './RecipientsDialog'
-import BulkSelectionBar from './BulkSelectionBar'
 
 const COLUMNS = [
   'Reference ID',
@@ -48,9 +47,9 @@ const COLUMNS = [
   'Account ID',
   'Tenant',
   'Source',
-  'Function',
   'Date & Time',
-  'Delivery Status'
+  'Delivery Status',
+  'Doc link'
 ] as const
 
 const headerCellSx = {
@@ -75,7 +74,7 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   const [selectedRow, setSelectedRow] = useState<Delivery | null>(null)
   const [pendingAction, setPendingAction] = useState<DeliveryActionType | null>(null)
-  const [actionIds, setActionIds] = useState<string[]>([])
+  const [actionMessageId, setActionMessageId] = useState<string | null>(null)
   const [actionComment, setActionComment] = useState('')
   const [actionSubmitting, setActionSubmitting] = useState(false)
   const [payload, setPayload] = useState<Record<string, unknown> | null>(null)
@@ -93,11 +92,12 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
   }
 
   const loadPayload = useCallback(async (row: Delivery) => {
+    setSelectedRow(row)
     setPayloadOpen(true)
     setPayloadLoading(true)
     setPayloadError(null)
     try {
-      const nextPayload = await fetchInputPayload(row.id)
+      const nextPayload = await fetchDeliveryPayload(row.messageId)
       setPayload(nextPayload)
     } catch (cause) {
       setPayload(null)
@@ -107,67 +107,56 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
     }
   }, [])
 
-  const handleViewPayload = () => {
-    if (!selectedRow) return
-    void loadPayload(selectedRow)
-  }
-
-  const handleViewComments = () => {
-    if (!selectedRow) return
-    setSelectedComments(deliveries.commentsFor(selectedRow))
+  const handleViewComments = (row: Delivery) => {
+    setSelectedRow(row)
+    setSelectedComments(deliveries.commentsFor(row))
     setCommentsOpen(true)
   }
 
-  const handleViewRecipients = (recipients?: DeliveryRecipients) => {
-    setSelectedRecipients(recipients ?? selectedRow?.recipients ?? { to: [], cc: [], bcc: [] })
+  const handleViewRecipients = (row: Delivery) => {
+    setSelectedRow(row)
+    setSelectedRecipients(row.recipients ?? { to: [], cc: [], bcc: [] })
     setRecipientsOpen(true)
   }
 
-  const startAction = (action: DeliveryActionType, ids: string[]) => {
+  const startAction = (action: DeliveryActionType, messageId: string) => {
     setPendingAction(action)
-    setActionIds(ids)
+    setActionMessageId(messageId)
   }
 
   const handleActionSubmit = async () => {
-    if (!pendingAction || !actionComment.trim() || actionIds.length === 0) return
+    if (!pendingAction || !actionComment.trim() || !actionMessageId) return
     setActionSubmitting(true)
     try {
-      const results = await Promise.all(
-        actionIds.map((id) =>
-          submitDeliveryAction({
-            id,
-            action: pendingAction,
-            comment: actionComment.trim()
-          })
-        )
-      )
-      const failed = results.some((result) => !result.success)
-      if (failed) {
-        enqueueSnackbar('One or more actions failed', { variant: 'error' })
+      const result = await submitDeliveryAction({
+        messageId: actionMessageId,
+        action: pendingAction,
+        comment: actionComment.trim()
+      })
+      if (!result.success) {
+        enqueueSnackbar('Action failed', { variant: 'error' })
         return
       }
 
-      deliveries.prependComment(actionIds, {
-        id: `${actionIds.join('-')}-${Date.now()}`,
+      deliveries.prependComment([actionMessageId], {
+        id: `${actionMessageId}-${Date.now()}`,
         comment: actionComment.trim(),
         action: pendingAction,
         commentedBy: 'You',
         commentedDate: nowLabel()
       })
-      enqueueSnackbar(
-        actionIds.length > 1 ? `Action submitted for ${actionIds.length} deliveries` : 'Action submitted successfully',
-        { variant: 'success' }
-      )
-      deliveries.clearSelection()
+      enqueueSnackbar('Action submitted successfully', { variant: 'success' })
     } catch {
       enqueueSnackbar('Action failed', { variant: 'error' })
     } finally {
       setActionSubmitting(false)
       setPendingAction(null)
       setActionComment('')
-      setActionIds([])
+      setActionMessageId(null)
     }
   }
+
+  const columnCount = COLUMNS.length + 1
 
   return (
     <Paper elevation={0} sx={{ p: 2, borderRadius: 3, border: `1px solid ${brand.border}`, boxShadow: brand.shadow.card }}>
@@ -176,13 +165,6 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
         onChange={deliveries.setDraftFilters}
         onSearch={deliveries.applyFilters}
         onReset={deliveries.resetFilters}
-      />
-
-      <BulkSelectionBar
-        count={deliveries.selectedIds.length}
-        onAcknowledge={() => startAction('acknowledge', deliveries.selectedIds)}
-        onResend={() => startAction('resend', deliveries.selectedIds)}
-        onClear={deliveries.clearSelection}
       />
 
       {deliveries.error && (
@@ -203,16 +185,6 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell padding="checkbox" sx={headerCellSx}>
-                <Checkbox
-                  size="small"
-                  checked={deliveries.allVisibleSelected}
-                  indeterminate={deliveries.someVisibleSelected && !deliveries.allVisibleSelected}
-                  onChange={deliveries.toggleAllVisible}
-                  sx={{ color: '#fff', '&.Mui-checked': { color: '#fff' }, '&.MuiCheckbox-indeterminate': { color: '#fff' } }}
-                  inputProps={{ 'aria-label': 'Select all deliveries on this page' }}
-                />
-              </TableCell>
               {COLUMNS.map((header) => (
                 <TableCell key={header} sx={headerCellSx}>
                   {header === 'Date & Time' ? (
@@ -239,7 +211,7 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
             {deliveries.loading ? (
               Array.from({ length: 6 }).map((_, index) => (
                 <TableRow key={index}>
-                  {Array.from({ length: 12 }).map((__, cell) => (
+                  {Array.from({ length: columnCount }).map((__, cell) => (
                     <TableCell key={cell}>
                       <Skeleton height={22} />
                     </TableCell>
@@ -248,7 +220,7 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
               ))
             ) : deliveries.rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={12} sx={{ py: 8, textAlign: 'center' }}>
+                <TableCell colSpan={columnCount} sx={{ py: 8, textAlign: 'center' }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 0.5 }}>No deliveries found</Typography>
                   <Typography variant="body2" color="text.secondary">
                     Try a different search, status, or time range.
@@ -257,37 +229,31 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
               </TableRow>
             ) : (
               deliveries.rows.map((row) => {
-                const dateTime = splitDateTime(row.dateTime)
+                const dateTime = splitDateTime(row.deliveryDateTime)
                 return (
-                  <TableRow key={row.id} hover selected={deliveries.selectedIds.includes(row.id)}>
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        size="small"
-                        checked={deliveries.selectedIds.includes(row.id)}
-                        onChange={() => deliveries.toggleRow(row.id)}
-                        inputProps={{ 'aria-label': `Select ${row.referenceId}` }}
-                      />
-                    </TableCell>
+                  <TableRow key={row.messageId} hover>
                     <TableCell sx={{ fontWeight: 600 }}>{row.referenceId}</TableCell>
                     <TableCell>{row.recipientType}</TableCell>
                     <TableCell>
+                      <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
+                        {row.recipientId}
+                      </Typography>
                       <Link
                         href="#"
                         underline="hover"
+                        variant="caption"
                         onClick={(event) => {
                           event.preventDefault()
-                          setSelectedRow(row)
-                          handleViewRecipients(row.recipients)
+                          handleViewRecipients(row)
                         }}
                       >
-                        {row.recipientId}
+                        recipient details
                       </Link>
                     </TableCell>
                     <TableCell>{row.applicationId}</TableCell>
                     <TableCell>{row.accountId}</TableCell>
                     <TableCell>{row.tenant}</TableCell>
                     <TableCell>{row.source}</TableCell>
-                    <TableCell>{row.functionName}</TableCell>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>{dateTime.date}</Typography>
                       <Typography variant="caption" color="text.secondary">{dateTime.time}</Typography>
@@ -295,10 +261,35 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
                     <TableCell>
                       <DeliveryStatusChip status={row.deliveryStatus} />
                     </TableCell>
+                    <TableCell>
+                      {row.inputAvailable ? (
+                        <Link
+                          href="#"
+                          underline="hover"
+                          onClick={(event) => {
+                            event.preventDefault()
+                            void loadPayload(row)
+                          }}
+                        >
+                          Input
+                        </Link>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">—</Typography>
+                      )}
+                    </TableCell>
                     <TableCell align="right">
-                      <IconButton size="small" onClick={(event) => openMenu(event, row)} aria-label={`Actions for ${row.referenceId}`}>
-                        <MoreVert fontSize="small" />
-                      </IconButton>
+                      <Stack direction="row" spacing={0.25} justifyContent="flex-end">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleViewComments(row)}
+                          aria-label={`View comments for ${row.referenceId}`}
+                        >
+                          <ChatBubbleOutline fontSize="small" />
+                        </IconButton>
+                        <IconButton size="small" onClick={(event) => openMenu(event, row)} aria-label={`Actions for ${row.referenceId}`}>
+                          <MoreVert fontSize="small" />
+                        </IconButton>
+                      </Stack>
                     </TableCell>
                   </TableRow>
                 )
@@ -326,24 +317,20 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
         onClose={() => setMenuAnchor(null)}
         onAction={(action) => {
           if (!selectedRow) return
-          startAction(action, [selectedRow.id])
+          startAction(action, selectedRow.messageId)
         }}
-        onViewComments={handleViewComments}
-        onViewPayload={handleViewPayload}
-        onViewRecipients={() => handleViewRecipients()}
       />
 
       <ActionConfirmDialog
         action={pendingAction}
         comment={actionComment}
         submitting={actionSubmitting}
-        count={actionIds.length}
         referenceLabel={selectedRow?.referenceId}
         onCommentChange={setActionComment}
         onClose={() => {
           setPendingAction(null)
           setActionComment('')
-          setActionIds([])
+          setActionMessageId(null)
         }}
         onSubmit={handleActionSubmit}
       />
