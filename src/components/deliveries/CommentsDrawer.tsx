@@ -90,7 +90,7 @@ export default function CommentsDrawer({ open, comments, referenceLabel, onClose
                       <Typography variant="caption" sx={{ color: brand.textMuted, display: 'block', mb: 1 }}>
                         {comment.commentedDate}
                       </Typography>
-                      <Typography variant="body2" sx={{ lineHeight: 1.6 }}>{comment.comment}</Typography>
+                      <Typography variant="body2" sx={{ lineHeight: 1.65 }}>{comment.comment}</Typography>
                     </Box>
                   </Stack>
                 )

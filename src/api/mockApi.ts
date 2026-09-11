@@ -48,6 +48,8 @@ export type FetchParams = {
   customerId?: string
   range?: string
   tableRange?: string
+  sortField?: 'dateTime'
+  sortDir?: 'asc' | 'desc'
 }
 
 export type FetchResult = {
@@ -81,7 +83,7 @@ const searchValue = (item: Delivery, field: SearchField): string => {
       return item.accountId
     case 'customerId':
     default:
-      return `${item.recipientType} ${item.recipientId} ${item.referenceId}`
+      return item.recipientId
   }
 }
 
@@ -169,7 +171,9 @@ export async function fetchDeliveries(params: FetchParams = {}): Promise<FetchRe
     pageSize = 10,
     customerId,
     range = 'TWO_WEEKS',
-    tableRange
+    tableRange,
+    sortField = 'dateTime',
+    sortDir = 'desc'
   } = params
   const selectedStatuses = Array.isArray(status) ? status : status ? [status] : []
 
@@ -193,6 +197,13 @@ export async function fetchDeliveries(params: FetchParams = {}): Promise<FetchRe
     filtered = filtered.filter((item) => item.channel === channel)
   }
 
+  filtered = [...filtered].sort((left, right) => {
+    if (sortField !== 'dateTime') return 0
+    const leftTime = parseFlexibleDate(left.dateTime)?.getTime() ?? 0
+    const rightTime = parseFlexibleDate(right.dateTime)?.getTime() ?? 0
+    return sortDir === 'asc' ? leftTime - rightTime : rightTime - leftTime
+  })
+
   const total = filtered.length
   const start = (page - 1) * pageSize
 
@@ -206,6 +217,8 @@ export async function fetchDeliveries(params: FetchParams = {}): Promise<FetchRe
       channel: channel ?? '',
       customerId: customerId ?? '',
       tableRange: tableRange ?? '',
+      sortField,
+      sortDir,
       page,
       pageSize
     },

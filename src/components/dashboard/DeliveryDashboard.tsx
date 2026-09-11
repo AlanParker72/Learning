@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
-import { Box, Grid, Skeleton, Stack, Typography } from '@mui/material'
+import { Alert, Box, Button, Grid, Skeleton, Stack, Typography } from '@mui/material'
 import {
-  CheckCircleOutline,
-  CloseOutlined,
-  ScheduleOutlined,
-  SendOutlined
+  Cancel,
+  CheckCircle,
+  AccessTimeFilled,
+  Send
 } from '@mui/icons-material'
 import { brand } from '../../theme/brand'
 import { formatClockTime, formatDisplayDate } from '../../utils/format'
@@ -16,10 +16,10 @@ import ChannelChart from './ChannelChart'
 import DeliveriesTable from '../deliveries/DeliveriesTable'
 
 const METRIC_ICONS: Record<MetricKey, ReactNode> = {
-  sent: <SendOutlined fontSize="small" />,
-  queued: <ScheduleOutlined fontSize="small" />,
-  failed: <CloseOutlined fontSize="small" />,
-  acknowledged: <CheckCircleOutline fontSize="small" />
+  sent: <Send fontSize="small" />,
+  queued: <AccessTimeFilled fontSize="small" />,
+  failed: <Cancel fontSize="small" />,
+  acknowledged: <CheckCircle fontSize="small" />
 }
 
 const METRIC_COLORS: Record<MetricKey, string> = {
@@ -58,6 +58,20 @@ export default function DeliveryDashboard() {
             lastUpdatedLabel={formatClockTime(dashboard.lastUpdated)}
           />
         </Stack>
+
+        {dashboard.error && (
+          <Alert
+            severity="error"
+            sx={{ mb: 2, borderRadius: 2 }}
+            action={
+              <Button color="inherit" size="small" onClick={dashboard.reload}>
+                Retry
+              </Button>
+            }
+          >
+            {dashboard.error}
+          </Alert>
+        )}
 
         <Grid container spacing={2} sx={{ mb: 3 }}>
           {dashboard.metrics.length === 0

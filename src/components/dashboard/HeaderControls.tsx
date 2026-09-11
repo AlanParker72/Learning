@@ -38,6 +38,7 @@ export default function HeaderControls({
             <Button
               key={option.value}
               onClick={() => onRangeChange(option.value)}
+              aria-pressed={active}
               sx={{
                 px: 2,
                 py: 0.75,

@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Button,
   Divider,
@@ -11,17 +12,27 @@ import { Close, ContentCopyOutlined } from '@mui/icons-material'
 import { useMemo, useState } from 'react'
 import { brand } from '../../theme/brand'
 import { copyToClipboard } from '../../utils/clipboard'
-import { toPayloadSections } from '../../utils/payload'
+import { humanizeKey, toPayloadSections } from '../../utils/payload'
 
 type PayloadDrawerProps = {
   open: boolean
   loading: boolean
+  error?: string | null
   payload: Record<string, unknown> | null
   referenceLabel?: string
   onClose: () => void
+  onRetry?: () => void
 }
 
-export default function PayloadDrawer({ open, loading, payload, referenceLabel, onClose }: PayloadDrawerProps) {
+export default function PayloadDrawer({
+  open,
+  loading,
+  error,
+  payload,
+  referenceLabel,
+  onClose,
+  onRetry
+}: PayloadDrawerProps) {
   const [copied, setCopied] = useState(false)
   const sections = useMemo(() => (payload ? toPayloadSections(payload) : []), [payload])
 
@@ -66,11 +77,21 @@ export default function PayloadDrawer({ open, loading, payload, referenceLabel, 
             <Typography variant="body2" color="text.secondary">Loading payload details...</Typography>
           )}
 
-          {!loading && !payload && (
+          {!loading && error && (
+            <Alert
+              severity="error"
+              sx={{ borderRadius: 2 }}
+              action={onRetry ? <Button color="inherit" size="small" onClick={onRetry}>Retry</Button> : undefined}
+            >
+              {error}
+            </Alert>
+          )}
+
+          {!loading && !error && !payload && (
             <Typography variant="body2" color="text.secondary">No payload is available for this delivery.</Typography>
           )}
 
-          {!loading && sections.map((section) => (
+          {!loading && !error && sections.map((section) => (
             <Box
               key={section.title}
               sx={{
@@ -82,13 +103,13 @@ export default function PayloadDrawer({ open, loading, payload, referenceLabel, 
               }}
             >
               <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.25, textTransform: 'capitalize' }}>
-                {section.title}
+                {humanizeKey(section.title)}
               </Typography>
               <Stack spacing={1.1}>
                 {section.fields.map((field) => (
                   <Stack key={field.key} direction="row" justifyContent="space-between" spacing={2}>
-                    <Typography variant="caption" sx={{ color: brand.textMuted, fontWeight: 700, textTransform: 'capitalize' }}>
-                      {field.key.replace(/\./g, ' / ')}
+                    <Typography variant="caption" sx={{ color: brand.textMuted, fontWeight: 700 }}>
+                      {humanizeKey(field.key)}
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600, textAlign: 'right', wordBreak: 'break-word' }}>
                       {field.value}

@@ -1,4 +1,4 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from '@mui/material'
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from '@mui/material'
 import { brand } from '../../theme/brand'
 import type { DeliveryActionType } from '../../api/mockApi'
 
@@ -6,6 +6,8 @@ type ActionConfirmDialogProps = {
   action: DeliveryActionType | null
   comment: string
   submitting: boolean
+  count?: number
+  referenceLabel?: string
   onCommentChange: (value: string) => void
   onClose: () => void
   onSubmit: () => void
@@ -15,18 +17,27 @@ export default function ActionConfirmDialog({
   action,
   comment,
   submitting,
+  count = 1,
+  referenceLabel,
   onCommentChange,
   onClose,
   onSubmit
 }: ActionConfirmDialogProps) {
   const isValid = comment.trim().length > 0
+  const isBulk = count > 1
+  const title = action === 'acknowledge'
+    ? (isBulk ? `Acknowledge ${count} deliveries` : 'Acknowledge delivery')
+    : (isBulk ? `Resend ${count} deliveries` : 'Resend delivery')
 
   return (
     <Dialog open={Boolean(action)} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 800 }}>
-        {action === 'acknowledge' ? 'Acknowledge delivery' : 'Resend delivery'}
-      </DialogTitle>
+      <DialogTitle sx={{ fontWeight: 800 }}>{title}</DialogTitle>
       <DialogContent>
+        {referenceLabel && !isBulk && (
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            {referenceLabel}
+          </Typography>
+        )}
         <TextField
           autoFocus
           multiline
@@ -36,6 +47,11 @@ export default function ActionConfirmDialog({
           placeholder="Add a note before submitting..."
           value={comment}
           onChange={(event) => onCommentChange(event.target.value)}
+          onKeyDown={(event) => {
+            if ((event.metaKey || event.ctrlKey) && event.key === 'Enter' && isValid && !submitting) {
+              onSubmit()
+            }
+          }}
           helperText="A comment is required so the activity timeline stays complete."
           sx={{ mt: 1 }}
         />

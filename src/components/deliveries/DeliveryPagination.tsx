@@ -1,4 +1,5 @@
 import { Button, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { ChevronLeft, ChevronRight, FirstPage, LastPage } from '@mui/icons-material'
 import { brand } from '../../theme/brand'
 import { formatNumber } from '../../utils/format'
 
@@ -37,14 +38,18 @@ export default function DeliveryPagination({
           value={String(pageSize)}
           onChange={(event) => onPageSizeChange(Number(event.target.value))}
           sx={{ minWidth: 128, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+          inputProps={{ 'aria-label': 'Rows per page' }}
         >
           {[10, 25, 50, 100].map((option) => (
             <MenuItem key={option} value={option}>{option} per page</MenuItem>
           ))}
         </TextField>
 
-        <Button size="small" variant="outlined" disabled={page === 1} onClick={() => onPageChange(Math.max(1, page - 1))} sx={{ minWidth: 36, borderRadius: 1.5 }}>
-          ‹
+        <Button size="small" variant="outlined" disabled={page === 1} onClick={() => onPageChange(1)} aria-label="First page" sx={{ minWidth: 36, borderRadius: 1.5 }}>
+          <FirstPage fontSize="small" />
+        </Button>
+        <Button size="small" variant="outlined" disabled={page === 1} onClick={() => onPageChange(Math.max(1, page - 1))} aria-label="Previous page" sx={{ minWidth: 36, borderRadius: 1.5 }}>
+          <ChevronLeft fontSize="small" />
         </Button>
 
         {pageNumbers.map((pageNumber, index, array) => {
@@ -59,6 +64,8 @@ export default function DeliveryPagination({
                 size="small"
                 variant={active ? 'contained' : 'outlined'}
                 onClick={() => onPageChange(pageNumber)}
+                aria-current={active ? 'page' : undefined}
+                aria-label={`Page ${pageNumber}`}
                 sx={{
                   minWidth: 36,
                   borderRadius: 1.5,
@@ -72,8 +79,11 @@ export default function DeliveryPagination({
           )
         })}
 
-        <Button size="small" variant="outlined" disabled={page >= pageCount} onClick={() => onPageChange(Math.min(pageCount, page + 1))} sx={{ minWidth: 36, borderRadius: 1.5 }}>
-          ›
+        <Button size="small" variant="outlined" disabled={page >= pageCount} onClick={() => onPageChange(Math.min(pageCount, page + 1))} aria-label="Next page" sx={{ minWidth: 36, borderRadius: 1.5 }}>
+          <ChevronRight fontSize="small" />
+        </Button>
+        <Button size="small" variant="outlined" disabled={page >= pageCount} onClick={() => onPageChange(pageCount)} aria-label="Last page" sx={{ minWidth: 36, borderRadius: 1.5 }}>
+          <LastPage fontSize="small" />
         </Button>
       </Stack>
     </Stack>

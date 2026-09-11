@@ -1,4 +1,4 @@
-import { Box, CircularProgress, FormControl, MenuItem, Paper, Select, Stack, Tooltip as MuiTooltip, Typography } from '@mui/material'
+import { Box, CircularProgress, FormControl, IconButton, MenuItem, Paper, Select, Stack, Tooltip as MuiTooltip, Typography } from '@mui/material'
 import { InfoOutlined } from '@mui/icons-material'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useMemo, useState } from 'react'
@@ -58,7 +58,7 @@ export default function ChannelChart({ data, loading = false }: ChannelChartProp
   return (
     <Paper
       elevation={0}
-      sx={{ p: 2.5, borderRadius: 3, border: `1px solid ${brand.border}`, boxShadow: brand.shadow.card, position: 'relative' }}
+      sx={{ p: 2.5, borderRadius: 3, border: `1px solid ${brand.border}`, boxShadow: brand.shadow.card, position: 'relative', height: '100%' }}
     >
       {loading && (
         <Box sx={{ position: 'absolute', inset: 0, background: brand.overlay.white60, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, borderRadius: 3 }}>
@@ -67,19 +67,22 @@ export default function ChannelChart({ data, loading = false }: ChannelChartProp
       )}
 
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2, gap: 1.5 }}>
-        <Stack direction="row" spacing={0.75} alignItems="center">
+        <Stack direction="row" spacing={0.5} alignItems="center">
           <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 18 }}>Delivery Channel Trend</Typography>
           <MuiTooltip title="Average delivery volume by channel">
-            <InfoOutlined sx={{ fontSize: 16, color: brand.muted }} />
+            <IconButton size="small" aria-label="About channel trend chart" sx={{ color: brand.muted }}>
+              <InfoOutlined sx={{ fontSize: 16 }} />
+            </IconButton>
           </MuiTooltip>
         </Stack>
 
-        <FormControl size="small" sx={{ minWidth: 140 }}>
+        <FormControl size="small" sx={{ minWidth: 148 }}>
           <Select
             value={groupBy}
             onChange={(event) => setGroupBy(event.target.value as GroupBy)}
             sx={{ borderRadius: 2, fontWeight: 600, fontSize: 13 }}
             renderValue={(value) => `Group by: ${value === 'day' ? 'Day' : 'Week'}`}
+            inputProps={{ 'aria-label': 'Group channel trend by day or week' }}
           >
             <MenuItem value="day">Day</MenuItem>
             <MenuItem value="week">Week</MenuItem>

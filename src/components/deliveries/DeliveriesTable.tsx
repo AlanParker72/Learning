@@ -1,15 +1,19 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import {
+  Alert,
+  Button,
   Checkbox,
   IconButton,
   Link,
   Paper,
+  Skeleton,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  TableSortLabel,
   Typography
 } from '@mui/material'
 import { MoreVert } from '@mui/icons-material'
@@ -34,6 +38,7 @@ import ActionConfirmDialog from './ActionConfirmDialog'
 import PayloadDrawer from './PayloadDrawer'
 import CommentsDrawer from './CommentsDrawer'
 import RecipientsDialog from './RecipientsDialog'
+import BulkSelectionBar from './BulkSelectionBar'
 
 const COLUMNS = [
   'Reference ID',
@@ -53,8 +58,16 @@ const headerCellSx = {
   fontWeight: 700,
   whiteSpace: 'nowrap',
   py: 1.6,
-  fontSize: 13
+  fontSize: 13,
+  background: brand.tableHeader
 } as const
+
+const nowLabel = (): string => {
+  const now = new Date()
+  const date = now.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '/')
+  const time = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  return `${date} ${time}`
+}
 
 export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: DashboardRangeUi }) {
   const { enqueueSnackbar } = useSnackbar()
@@ -62,11 +75,13 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   const [selectedRow, setSelectedRow] = useState<Delivery | null>(null)
   const [pendingAction, setPendingAction] = useState<DeliveryActionType | null>(null)
+  const [actionIds, setActionIds] = useState<string[]>([])
   const [actionComment, setActionComment] = useState('')
   const [actionSubmitting, setActionSubmitting] = useState(false)
   const [payload, setPayload] = useState<Record<string, unknown> | null>(null)
   const [payloadOpen, setPayloadOpen] = useState(false)
   const [payloadLoading, setPayloadLoading] = useState(false)
+  const [payloadError, setPayloadError] = useState<string | null>(null)
   const [commentsOpen, setCommentsOpen] = useState(false)
   const [selectedComments, setSelectedComments] = useState<DeliveryComment[]>([])
   const [recipientsOpen, setRecipientsOpen] = useState(false)
@@ -77,20 +92,29 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
     setMenuAnchor(event.currentTarget)
   }
 
-  const handleViewPayload = async () => {
-    if (!selectedRow) return
+  const loadPayload = useCallback(async (row: Delivery) => {
     setPayloadOpen(true)
     setPayloadLoading(true)
+    setPayloadError(null)
     try {
-      const nextPayload = await fetchInputPayload(selectedRow.id)
+      const nextPayload = await fetchInputPayload(row.id)
       setPayload(nextPayload)
+    } catch (cause) {
+      setPayload(null)
+      setPayloadError(cause instanceof Error ? cause.message : 'Unable to load payload')
     } finally {
       setPayloadLoading(false)
     }
+  }, [])
+
+  const handleViewPayload = () => {
+    if (!selectedRow) return
+    void loadPayload(selectedRow)
   }
 
   const handleViewComments = () => {
-    setSelectedComments(selectedRow?.comments ?? [])
+    if (!selectedRow) return
+    setSelectedComments(deliveries.commentsFor(selectedRow))
     setCommentsOpen(true)
   }
 
@@ -99,24 +123,49 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
     setRecipientsOpen(true)
   }
 
+  const startAction = (action: DeliveryActionType, ids: string[]) => {
+    setPendingAction(action)
+    setActionIds(ids)
+  }
+
   const handleActionSubmit = async () => {
-    if (!selectedRow || !pendingAction || !actionComment.trim()) return
+    if (!pendingAction || !actionComment.trim() || actionIds.length === 0) return
     setActionSubmitting(true)
     try {
-      const result = await submitDeliveryAction({
-        id: selectedRow.id,
+      const results = await Promise.all(
+        actionIds.map((id) =>
+          submitDeliveryAction({
+            id,
+            action: pendingAction,
+            comment: actionComment.trim()
+          })
+        )
+      )
+      const failed = results.some((result) => !result.success)
+      if (failed) {
+        enqueueSnackbar('One or more actions failed', { variant: 'error' })
+        return
+      }
+
+      deliveries.prependComment(actionIds, {
+        id: `${actionIds.join('-')}-${Date.now()}`,
+        comment: actionComment.trim(),
         action: pendingAction,
-        comment: actionComment.trim()
+        commentedBy: 'You',
+        commentedDate: nowLabel()
       })
-      enqueueSnackbar(result.success ? 'Action submitted successfully' : 'Action failed', {
-        variant: result.success ? 'success' : 'error'
-      })
+      enqueueSnackbar(
+        actionIds.length > 1 ? `Action submitted for ${actionIds.length} deliveries` : 'Action submitted successfully',
+        { variant: 'success' }
+      )
+      deliveries.clearSelection()
     } catch {
       enqueueSnackbar('Action failed', { variant: 'error' })
     } finally {
       setActionSubmitting(false)
       setPendingAction(null)
       setActionComment('')
+      setActionIds([])
     }
   }
 
@@ -129,10 +178,31 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
         onReset={deliveries.resetFilters}
       />
 
-      <TableContainer sx={{ border: `1px solid ${brand.border}`, borderRadius: 2, overflow: 'auto' }}>
-        <Table size="small">
+      <BulkSelectionBar
+        count={deliveries.selectedIds.length}
+        onAcknowledge={() => startAction('acknowledge', deliveries.selectedIds)}
+        onResend={() => startAction('resend', deliveries.selectedIds)}
+        onClear={deliveries.clearSelection}
+      />
+
+      {deliveries.error && (
+        <Alert
+          severity="error"
+          sx={{ mb: 2, borderRadius: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={deliveries.reload}>
+              Retry
+            </Button>
+          }
+        >
+          {deliveries.error}
+        </Alert>
+      )}
+
+      <TableContainer sx={{ border: `1px solid ${brand.border}`, borderRadius: 2, overflow: 'auto', maxHeight: 560 }}>
+        <Table size="small" stickyHeader>
           <TableHead>
-            <TableRow sx={{ background: brand.tableHeader }}>
+            <TableRow>
               <TableCell padding="checkbox" sx={headerCellSx}>
                 <Checkbox
                   size="small"
@@ -144,19 +214,46 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
                 />
               </TableCell>
               {COLUMNS.map((header) => (
-                <TableCell key={header} sx={headerCellSx}>{header}</TableCell>
+                <TableCell key={header} sx={headerCellSx}>
+                  {header === 'Date & Time' ? (
+                    <TableSortLabel
+                      active={deliveries.sortField === 'dateTime'}
+                      direction={deliveries.sortDir}
+                      onClick={() => deliveries.toggleSort('dateTime')}
+                      sx={{
+                        color: '#fff !important',
+                        '& .MuiTableSortLabel-icon': { color: '#fff !important' }
+                      }}
+                    >
+                      {header}
+                    </TableSortLabel>
+                  ) : (
+                    header
+                  )}
+                </TableCell>
               ))}
               <TableCell sx={headerCellSx} />
             </TableRow>
           </TableHead>
           <TableBody>
             {deliveries.loading ? (
-              <TableRow>
-                <TableCell colSpan={12} sx={{ py: 6, textAlign: 'center' }}>Loading deliveries...</TableCell>
-              </TableRow>
+              Array.from({ length: 6 }).map((_, index) => (
+                <TableRow key={index}>
+                  {Array.from({ length: 12 }).map((__, cell) => (
+                    <TableCell key={cell}>
+                      <Skeleton height={22} />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
             ) : deliveries.rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={12} sx={{ py: 6, textAlign: 'center' }}>No deliveries match the current filters.</TableCell>
+                <TableCell colSpan={12} sx={{ py: 8, textAlign: 'center' }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 0.5 }}>No deliveries found</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Try a different search, status, or time range.
+                  </Typography>
+                </TableCell>
               </TableRow>
             ) : (
               deliveries.rows.map((row) => {
@@ -227,7 +324,10 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
       <RowActionsMenu
         anchorEl={menuAnchor}
         onClose={() => setMenuAnchor(null)}
-        onAction={setPendingAction}
+        onAction={(action) => {
+          if (!selectedRow) return
+          startAction(action, [selectedRow.id])
+        }}
         onViewComments={handleViewComments}
         onViewPayload={handleViewPayload}
         onViewRecipients={() => handleViewRecipients()}
@@ -237,10 +337,13 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
         action={pendingAction}
         comment={actionComment}
         submitting={actionSubmitting}
+        count={actionIds.length}
+        referenceLabel={selectedRow?.referenceId}
         onCommentChange={setActionComment}
         onClose={() => {
           setPendingAction(null)
           setActionComment('')
+          setActionIds([])
         }}
         onSubmit={handleActionSubmit}
       />
@@ -248,11 +351,14 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
       <PayloadDrawer
         open={payloadOpen}
         loading={payloadLoading}
+        error={payloadError}
         payload={payload}
         referenceLabel={selectedRow?.referenceId}
+        onRetry={selectedRow ? () => void loadPayload(selectedRow) : undefined}
         onClose={() => {
           setPayloadOpen(false)
           setPayload(null)
+          setPayloadError(null)
         }}
       />
 

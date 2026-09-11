@@ -1,4 +1,4 @@
-import { Box, Button, CircularProgress, Paper, Stack, Tooltip as MuiTooltip, Typography } from '@mui/material'
+import { Box, Button, CircularProgress, IconButton, Paper, Stack, Tooltip as MuiTooltip, Typography } from '@mui/material'
 import { InfoOutlined } from '@mui/icons-material'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { DashboardStatusPoint } from '../../api/dashboardStatusApi'
@@ -41,7 +41,7 @@ export default function StatusChart({ data, range, onRangeChange, loading = fals
   return (
     <Paper
       elevation={0}
-      sx={{ p: 2.5, borderRadius: 3, border: `1px solid ${brand.border}`, boxShadow: brand.shadow.card, position: 'relative' }}
+      sx={{ p: 2.5, borderRadius: 3, border: `1px solid ${brand.border}`, boxShadow: brand.shadow.card, position: 'relative', height: '100%' }}
     >
       {loading && (
         <Box sx={{ position: 'absolute', inset: 0, background: brand.overlay.white60, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, borderRadius: 3 }}>
@@ -50,10 +50,12 @@ export default function StatusChart({ data, range, onRangeChange, loading = fals
       )}
 
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2, gap: 1.5 }}>
-        <Stack direction="row" spacing={0.75} alignItems="center">
+        <Stack direction="row" spacing={0.5} alignItems="center">
           <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 18 }}>Delivery Status</Typography>
           <MuiTooltip title="Stacked daily totals by delivery outcome">
-            <InfoOutlined sx={{ fontSize: 16, color: brand.muted }} />
+            <IconButton size="small" aria-label="About delivery status chart" sx={{ color: brand.muted }}>
+              <InfoOutlined sx={{ fontSize: 16 }} />
+            </IconButton>
           </MuiTooltip>
         </Stack>
 
@@ -65,6 +67,8 @@ export default function StatusChart({ data, range, onRangeChange, loading = fals
                 key={option.value}
                 size="small"
                 onClick={() => onRangeChange(option.value)}
+                aria-pressed={active}
+                aria-label={`Show ${option.label} delivery status`}
                 sx={{
                   minWidth: 42,
                   px: 1.25,
@@ -94,7 +98,7 @@ export default function StatusChart({ data, range, onRangeChange, loading = fals
 
       <Box sx={{ width: '100%', height: 280 }}>
         <ResponsiveContainer>
-          <BarChart data={chartData} barGap={6} barSize={28}>
+          <BarChart data={chartData} barGap={6} barSize={chartData.length > 14 ? 16 : 28}>
             <CartesianGrid vertical={false} stroke={brand.gridStroke} strokeDasharray="3 3" />
             <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: brand.tick, fontSize: 12 }} />
             <YAxis tickLine={false} axisLine={false} tick={{ fill: brand.tick, fontSize: 12 }} />
@@ -102,10 +106,10 @@ export default function StatusChart({ data, range, onRangeChange, loading = fals
               cursor={{ fill: brand.hoverLight }}
               contentStyle={{ borderRadius: 12, border: `1px solid ${brand.border}`, boxShadow: brand.shadow.card }}
             />
-            <Bar dataKey="sent" stackId="status" fill={brand.metrics.sent} />
-            <Bar dataKey="queued" stackId="status" fill={brand.metrics.queued} />
-            <Bar dataKey="failed" stackId="status" fill={brand.metrics.failed} />
-            <Bar dataKey="acknowledged" stackId="status" fill={brand.metrics.acknowledged} radius={[6, 6, 0, 0]} />
+            <Bar dataKey="sent" name="Sent / Re-Sent" stackId="status" fill={brand.metrics.sent} />
+            <Bar dataKey="queued" name="Queued" stackId="status" fill={brand.metrics.queued} />
+            <Bar dataKey="failed" name="Failed" stackId="status" fill={brand.metrics.failed} />
+            <Bar dataKey="acknowledged" name="Acknowledged" stackId="status" fill={brand.metrics.acknowledged} radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </Box>

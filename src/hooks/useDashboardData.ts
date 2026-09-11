@@ -27,7 +27,10 @@ const METRIC_LABELS: Record<MetricKey, string> = {
   acknowledged: 'Acknowledged'
 }
 
-const getRangeDates = (range: DashboardRangeUi) => {
+const errorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : 'Unable to load dashboard data'
+
+export const getRangeDates = (range: DashboardRangeUi) => {
   const to = new Date()
   const from = new Date(to)
 
@@ -60,12 +63,29 @@ const summarizeMetric = (rows: DashboardStatusPoint[], key: MetricKey, range: Da
 export function useDashboardData(initialRange: DashboardRangeUi = 'ONE_WEEK') {
   const [headerRange, setHeaderRange] = useState<DashboardRangeUi>(initialRange)
   const [statusRange, setStatusRange] = useState<DashboardRangeUi>(initialRange)
-  const [channelRange, setChannelRange] = useState<DashboardRangeUi>(initialRange)
+  const [metricsResponse, setMetricsResponse] = useState<DashboardStatusResponse | null>(null)
   const [statusResponse, setStatusResponse] = useState<DashboardStatusResponse | null>(null)
   const [channelResponse, setChannelResponse] = useState<DashboardStatusResponse | null>(null)
+  const [metricsLoading, setMetricsLoading] = useState(false)
   const [statusLoading, setStatusLoading] = useState(false)
   const [channelLoading, setChannelLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+
+  const loadMetrics = useCallback(async (range: DashboardRangeUi) => {
+    setMetricsLoading(true)
+    try {
+      const { fromIso, toIso } = getRangeDates(range)
+      const data = await fetchDashboardStatus({ range, fromDate: fromIso, toDate: toIso })
+      setMetricsResponse(data)
+      setLastUpdated(new Date())
+      setError(null)
+    } catch (cause) {
+      setError(errorMessage(cause))
+    } finally {
+      setMetricsLoading(false)
+    }
+  }, [])
 
   const loadStatus = useCallback(async (range: DashboardRangeUi) => {
     setStatusLoading(true)
@@ -74,6 +94,9 @@ export function useDashboardData(initialRange: DashboardRangeUi = 'ONE_WEEK') {
       const data = await fetchDashboardStatus({ range, fromDate: fromIso, toDate: toIso })
       setStatusResponse(data)
       setLastUpdated(new Date())
+      setError(null)
+    } catch (cause) {
+      setError(errorMessage(cause))
     } finally {
       setStatusLoading(false)
     }
@@ -86,51 +109,58 @@ export function useDashboardData(initialRange: DashboardRangeUi = 'ONE_WEEK') {
       const data = await fetchDeliveryChannelTrend({ range, fromDate: fromIso, toDate: toIso })
       setChannelResponse(data)
       setLastUpdated(new Date())
+      setError(null)
+    } catch (cause) {
+      setError(errorMessage(cause))
     } finally {
       setChannelLoading(false)
     }
   }, [])
 
-  const handleHeaderRangeChange = useCallback(
-    (range: DashboardRangeUi) => {
-      setHeaderRange(range)
-      setStatusRange(range)
-      setChannelRange(range)
-    },
-    []
-  )
+  const handleHeaderRangeChange = useCallback((range: DashboardRangeUi) => {
+    setHeaderRange(range)
+    setStatusRange(range)
+  }, [])
+
+  const reload = useCallback(() => {
+    void loadMetrics(headerRange)
+    void loadStatus(statusRange)
+    void loadChannel(headerRange)
+  }, [headerRange, loadChannel, loadMetrics, loadStatus, statusRange])
+
+  useEffect(() => {
+    void loadMetrics(headerRange)
+    void loadChannel(headerRange)
+  }, [headerRange, loadChannel, loadMetrics])
 
   useEffect(() => {
     void loadStatus(statusRange)
   }, [loadStatus, statusRange])
 
-  useEffect(() => {
-    void loadChannel(channelRange)
-  }, [channelRange, loadChannel])
-
   const rangeWindow = useMemo(() => getRangeDates(headerRange), [headerRange])
 
   const metrics = useMemo<MetricSummary[]>(() => {
-    const rows = statusResponse?.data ?? []
+    const rows = metricsResponse?.data ?? []
     if (rows.length === 0) return []
     return (['sent', 'queued', 'failed', 'acknowledged'] as MetricKey[]).map((key) =>
       summarizeMetric(rows, key, headerRange)
     )
-  }, [headerRange, statusResponse])
+  }, [headerRange, metricsResponse])
 
   return {
     headerRange,
     statusRange,
-    channelRange,
     setStatusRange,
-    setChannelRange,
     handleHeaderRangeChange,
     statusResponse,
     channelResponse,
+    metricsLoading,
     statusLoading,
     channelLoading,
     metrics,
     rangeWindow,
-    lastUpdated
+    lastUpdated,
+    error,
+    reload
   }
 }

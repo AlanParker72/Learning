@@ -1,4 +1,4 @@
-import { Box, Button, FormControl, InputAdornment, InputLabel, MenuItem, Select, Stack, TextField } from '@mui/material'
+import { Box, Button, Checkbox, FormControl, InputAdornment, InputLabel, ListItemText, MenuItem, Select, Stack, TextField } from '@mui/material'
 import { ReplayOutlined, SearchOutlined } from '@mui/icons-material'
 import type { DeliveryFilters } from '../../hooks/useDeliveries'
 import type { SearchField } from '../../api/mockApi'
@@ -21,15 +21,16 @@ const SEARCH_BY_OPTIONS: Array<{ label: string; value: SearchField }> = [
 
 const STATUS_OPTIONS = ['Sent / Re-Sent', 'Queued', 'Failed', 'Acknowledged']
 const CHANNEL_OPTIONS = ['Marketplace Email', 'Internal Email', 'SMTP Email', 'Push Notifications']
-const CUSTOMER_OPTIONS = ['Customer', 'Prospect', 'Employee']
 const RANGE_OPTIONS = ['Last 1 hour', 'Last 12 hours', 'Last 24 hours', 'Last 7 days']
 
 const fieldSx = {
-  minWidth: 160,
+  minWidth: 150,
   '& .MuiOutlinedInput-root': { borderRadius: 2, background: brand.surface }
 }
 
 export default function DeliveryFiltersBar({ filters, onChange, onSearch, onReset }: DeliveryFiltersBarProps) {
+  const searchByLabel = SEARCH_BY_OPTIONS.find((option) => option.value === filters.searchBy)?.label ?? 'Customer ID'
+
   return (
     <Stack direction={{ xs: 'column', lg: 'row' }} spacing={1.5} alignItems={{ lg: 'flex-end' }} sx={{ mb: 2, flexWrap: 'wrap' }}>
       <FormControl size="small" sx={fieldSx}>
@@ -37,7 +38,7 @@ export default function DeliveryFiltersBar({ filters, onChange, onSearch, onRese
         <Select
           label="Search By"
           value={filters.searchBy}
-          onChange={(event) => onChange({ ...filters, searchBy: event.target.value as SearchField })}
+          onChange={(event) => onChange({ ...filters, searchBy: event.target.value as SearchField, search: '' })}
         >
           {SEARCH_BY_OPTIONS.map((option) => (
             <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
@@ -45,30 +46,16 @@ export default function DeliveryFiltersBar({ filters, onChange, onSearch, onRese
         </Select>
       </FormControl>
 
-      <FormControl size="small" sx={fieldSx}>
-        <InputLabel>Recipient Type</InputLabel>
-        <Select
-          label="Recipient Type"
-          value={filters.customerId}
-          onChange={(event) => onChange({ ...filters, customerId: event.target.value })}
-        >
-          <MenuItem value="all">All</MenuItem>
-          {CUSTOMER_OPTIONS.map((option) => (
-            <MenuItem key={option} value={option}>{option}</MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-
       <TextField
         size="small"
-        label="Customer ID"
-        placeholder="Search by Customer ID..."
+        label={searchByLabel}
+        placeholder={`Search by ${searchByLabel}...`}
         value={filters.search}
         onChange={(event) => onChange({ ...filters, search: event.target.value })}
         onKeyDown={(event) => {
           if (event.key === 'Enter') onSearch()
         }}
-        sx={{ minWidth: 220, '& .MuiOutlinedInput-root': { borderRadius: 2, background: brand.surface } }}
+        sx={{ minWidth: 220, flex: { lg: '1 1 220px' }, '& .MuiOutlinedInput-root': { borderRadius: 2, background: brand.surface } }}
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
@@ -91,7 +78,10 @@ export default function DeliveryFiltersBar({ filters, onChange, onSearch, onRese
           }}
         >
           {STATUS_OPTIONS.map((option) => (
-            <MenuItem key={option} value={option}>{option}</MenuItem>
+            <MenuItem key={option} value={option}>
+              <Checkbox size="small" checked={filters.status.includes(option)} />
+              <ListItemText primary={option} />
+            </MenuItem>
           ))}
         </Select>
       </FormControl>

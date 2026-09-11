@@ -28,6 +28,7 @@ export default function MetricCard({
 }: MetricCardProps) {
   const isUp = delta >= 0
   const favorable = invertDelta ? delta <= 0 : delta >= 0
+  const trendColor = favorable ? brand.status.sent.color : brand.status.failed.color
 
   return (
     <Paper
@@ -35,9 +36,10 @@ export default function MetricCard({
       sx={{
         p: 2.25,
         borderRadius: 3,
-        border: `1px solid ${brand.border}`,
+        border: `1px solid ${color}33`,
         boxShadow: brand.shadow.card,
-        minHeight: 128
+        minHeight: 128,
+        background: `linear-gradient(180deg, ${color}0d 0%, ${brand.surface} 42%)`
       }}
     >
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
@@ -48,7 +50,7 @@ export default function MetricCard({
                 width: 32,
                 height: 32,
                 borderRadius: 2,
-                background: `${color}18`,
+                background: `${color}1f`,
                 color,
                 display: 'flex',
                 alignItems: 'center',
@@ -68,14 +70,11 @@ export default function MetricCard({
 
           <Stack direction="row" spacing={0.5} alignItems="center">
             {isUp ? (
-              <TrendingUp sx={{ fontSize: 16, color: favorable ? brand.status.sent.color : brand.status.failed.color }} />
+              <TrendingUp sx={{ fontSize: 16, color: trendColor }} />
             ) : (
-              <TrendingDown sx={{ fontSize: 16, color: favorable ? brand.status.sent.color : brand.status.failed.color }} />
+              <TrendingDown sx={{ fontSize: 16, color: trendColor }} />
             )}
-            <Typography
-              variant="caption"
-              sx={{ fontWeight: 700, color: favorable ? brand.status.sent.color : brand.status.failed.color }}
-            >
+            <Typography variant="caption" sx={{ fontWeight: 700, color: trendColor }}>
               {formatPercent(delta)}
             </Typography>
             <Typography variant="caption" sx={{ color: brand.textMuted }}>
