@@ -9,8 +9,11 @@ import { mapDeliveriesResponse } from './mapper'
 import { getDeliveriesStub } from '../stubs/deliveriesStub'
 import { getDeliveryPayloadStub } from '../stubs/deliveryPayloadStub'
 import { postDeliveryActionStub } from '../stubs/deliveryActionStub'
+import type { StatusCode } from '../theme/statusConfig'
 
-export type DeliveryStatus = 'Sent / Re-Sent' | 'Queued' | 'Failed' | 'Acknowledged'
+/** Delivery row status — matches the delivery list enum. */
+export type DeliveryStatus = StatusCode
+
 export type DeliveryActionType = 'acknowledge' | 'resend'
 export type SearchField = 'customerId' | 'referenceId' | 'recipientId' | 'applicationId' | 'accountId'
 

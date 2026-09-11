@@ -16,6 +16,7 @@ import { ReplayOutlined, SearchOutlined } from '@mui/icons-material'
 import type { DeliveryFilters } from '../../hooks/useDeliveries'
 import type { SearchField } from '../../api/deliveriesApi'
 import { brand } from '../../theme/brand'
+import { DELIVERY_STATUSES, STATUS_CONFIG, type StatusCode } from '../../theme/statusConfig'
 
 type DeliveryFiltersBarProps = {
   filters: DeliveryFilters
@@ -32,7 +33,7 @@ const SEARCH_BY_OPTIONS: Array<{ label: string; value: SearchField }> = [
   { label: 'Account ID', value: 'accountId' }
 ]
 
-const STATUS_OPTIONS = ['Sent / Re-Sent', 'Queued', 'Failed', 'Acknowledged']
+const STATUS_OPTIONS = DELIVERY_STATUSES
 const CHANNEL_OPTIONS = ['Marketplace Email', 'SMTP', 'Push']
 const RANGE_OPTIONS = ['Last 1 hour', 'Last 12 hours', 'Last 24 hours', 'Last 7 days']
 
@@ -43,8 +44,8 @@ const compactFieldSx = {
 }
 
 const statusFieldSx = {
-  minWidth: 158,
-  maxWidth: 180,
+  minWidth: 168,
+  maxWidth: 200,
   '& .MuiOutlinedInput-root': { borderRadius: 1.5, background: brand.surface }
 }
 
@@ -52,6 +53,10 @@ const selectFieldSx = {
   minWidth: 140,
   maxWidth: 160,
   '& .MuiOutlinedInput-root': { borderRadius: 1.5, background: brand.surface }
+}
+
+function statusDisplayLabel(value: string): string {
+  return STATUS_CONFIG[value as StatusCode]?.label ?? value
 }
 
 function SelectedValuesLabel({ selected }: { selected: string[] }) {
@@ -63,7 +68,7 @@ function SelectedValuesLabel({ selected }: { selected: string[] }) {
     )
   }
 
-  const label = selected.join(', ')
+  const label = selected.map(statusDisplayLabel).join(', ')
   return (
     <Tooltip title={label} enterDelay={350} placement="top">
       <Box
@@ -160,7 +165,7 @@ export default function DeliveryFiltersBar({ filters, onChange, onSearch, onRese
             {STATUS_OPTIONS.map((option) => (
               <MenuItem key={option} value={option}>
                 <Checkbox size="small" checked={filters.status.includes(option)} />
-                <ListItemText primary={option} />
+                <ListItemText primary={STATUS_CONFIG[option].label} />
               </MenuItem>
             ))}
           </Select>

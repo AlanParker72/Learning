@@ -17,6 +17,7 @@ import type {
   DeliveryStatus,
   FetchResult
 } from './deliveriesApi'
+import { DELIVERY_STATUSES, type StatusCode } from '../theme/statusConfig'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
@@ -33,19 +34,36 @@ const asBoolean = (value: unknown, fallback = false): boolean =>
 const asStringArray = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
 
+const STATUS_SET = new Set<string>(DELIVERY_STATUSES)
+
+/** Map legacy display labels and aggregate keys onto the delivery list enum. */
 const STATUS_ALIASES: Record<string, DeliveryStatus> = {
-  'sent / re-sent': 'Sent / Re-Sent',
-  sent: 'Sent / Re-Sent',
-  resent: 'Sent / Re-Sent',
-  're-sent': 'Sent / Re-Sent',
-  queued: 'Queued',
-  failed: 'Failed',
-  acknowledged: 'Acknowledged'
+  new: 'NEW',
+  dispatched: 'DISPATCHED',
+  error_stop: 'ERROR_STOP',
+  'error stop': 'ERROR_STOP',
+  error_retry: 'ERROR_RETRY',
+  'error retry': 'ERROR_RETRY',
+  processing: 'PROCESSING',
+  queued: 'QUEUED',
+  failed_retry: 'FAILED_RETRY',
+  'failed retry': 'FAILED_RETRY',
+  failed: 'FAILED_RETRY',
+  acknowledged: 'ACKNOWLEDGED',
+  complete: 'COMPLETE',
+  'sent / re-sent': 'COMPLETE',
+  sent: 'COMPLETE',
+  resent: 'COMPLETE',
+  're-sent': 'COMPLETE'
 }
 
 export const mapDeliveryStatus = (value: unknown): DeliveryStatus => {
-  const normalized = asString(value).trim().toLowerCase()
-  return STATUS_ALIASES[normalized] ?? (asString(value, 'Queued') as DeliveryStatus)
+  const raw = asString(value, 'QUEUED').trim()
+  const upper = raw.toUpperCase().replace(/[\s-]+/g, '_')
+  if (STATUS_SET.has(upper)) return upper as StatusCode
+
+  const normalized = raw.toLowerCase()
+  return STATUS_ALIASES[normalized] ?? 'QUEUED'
 }
 
 export const mapDeliveryAction = (value: unknown): DeliveryActionType => {

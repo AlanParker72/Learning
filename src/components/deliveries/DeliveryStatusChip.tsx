@@ -2,15 +2,8 @@ import { Chip } from '@mui/material'
 import type { DeliveryStatus } from '../../api/deliveriesApi'
 import { STATUS_CONFIG } from '../../theme/statusConfig'
 
-const STATUS_KEY: Record<DeliveryStatus, keyof typeof STATUS_CONFIG> = {
-  'Sent / Re-Sent': 'SENT',
-  Queued: 'QUEUED',
-  Failed: 'FAILED',
-  Acknowledged: 'ACKNOWLEDGED'
-}
-
 export default function DeliveryStatusChip({ status }: { status: DeliveryStatus }) {
-  const config = STATUS_CONFIG[STATUS_KEY[status]]
+  const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.QUEUED
 
   return (
     <Chip
