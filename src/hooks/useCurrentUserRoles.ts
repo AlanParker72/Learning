@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   actionsForRoles,
   fetchCurrentUserRoles,
+  isEditRole,
+  isReadOnlyRole,
   type DeliveryActionPermission,
   type UserRole
 } from '../config/roles'
@@ -12,7 +14,12 @@ export type CurrentUserRolesState = {
   allowedActions: DeliveryActionPermission[]
   canAcknowledge: boolean
   canResend: boolean
+  /** True when the user has any delivery row action permission (edit capability). */
   hasAnyAction: boolean
+  /** True when at least one role is EDIT. */
+  canEdit: boolean
+  /** True when roles are present and none grant edit/actions. */
+  isReadOnly: boolean
 }
 
 /**
@@ -39,13 +46,18 @@ export function useCurrentUserRoles(): CurrentUserRolesState {
 
   return useMemo(() => {
     const allowedActions = actionsForRoles(roles)
+    const canEdit = roles.some(isEditRole)
+    const isReadOnly =
+      roles.length > 0 && roles.every(isReadOnlyRole) && allowedActions.length === 0
     return {
       roles,
       loading,
       allowedActions,
       canAcknowledge: allowedActions.includes('acknowledge'),
       canResend: allowedActions.includes('resend'),
-      hasAnyAction: allowedActions.length > 0
+      hasAnyAction: allowedActions.length > 0,
+      canEdit,
+      isReadOnly
     }
   }, [loading, roles])
 }

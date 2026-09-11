@@ -232,6 +232,8 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
             ) : (
               deliveries.rows.map((row) => {
                 const dateTime = splitDateTime(row.deliveryDateTime)
+                const rowComments = deliveries.commentsFor(row)
+                const hasComments = rowComments.length > 0
                 return (
                   <TableRow key={row.messageId} hover>
                     <TableCell sx={{ fontWeight: 600 }}>{row.referenceId}</TableCell>
@@ -281,13 +283,16 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
                     </TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={0.25} justifyContent="flex-end">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleViewComments(row)}
-                          aria-label={`View comments for ${row.referenceId}`}
-                        >
-                          <ChatBubbleOutline fontSize="small" />
-                        </IconButton>
+                        {hasComments && (
+                          <IconButton
+                            size="small"
+                            onClick={() => handleViewComments(row)}
+                            aria-label={`View comments for ${row.referenceId}`}
+                          >
+                            <ChatBubbleOutline fontSize="small" />
+                          </IconButton>
+                        )}
+                        {/* READ_ONLY: hasAnyAction is false → hide ⋮ Acknowledge/Resend menu */}
                         {hasAnyAction && (
                           <IconButton size="small" onClick={(event) => openMenu(event, row)} aria-label={`Actions for ${row.referenceId}`}>
                             <MoreVert fontSize="small" />

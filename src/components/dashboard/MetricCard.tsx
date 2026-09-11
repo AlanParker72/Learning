@@ -7,11 +7,12 @@ type MetricCardProps = {
   label: string
   value: number
   color: string
+  iconBg: string
   icon: ReactNode
 }
 
-/** KPI card — total only (no historical delta / sparkline per API contract). */
-export default function MetricCard({ label, value, color, icon }: MetricCardProps) {
+/** KPI card — range total only (no delta / sparkline). Matches delivery dashboard canvas. */
+export default function MetricCard({ label, value, color, iconBg, icon }: MetricCardProps) {
   return (
     <Paper
       elevation={0}
@@ -19,72 +20,72 @@ export default function MetricCard({ label, value, color, icon }: MetricCardProp
         position: 'relative',
         overflow: 'hidden',
         p: 2.25,
-        pl: 2.5,
-        borderRadius: 2,
+        borderRadius: 2.5,
         border: `1px solid ${brand.border}`,
-        boxShadow: 'none',
-        minHeight: 112,
-        background: brand.surface,
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          left: 0,
-          top: 14,
-          bottom: 14,
-          width: 3.5,
-          borderRadius: 999,
-          background: color
-        }
+        boxShadow: brand.shadow.card,
+        minHeight: 118,
+        background: brand.surface
       }}
     >
-      <Stack spacing={1.5}>
-        <Stack direction="row" spacing={1.25} alignItems="center">
-          <Box
-            sx={{
-              width: 42,
-              height: 42,
-              borderRadius: '50%',
-              border: `1px solid ${color}45`,
-              background: `${color}14`,
-              color,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              '& .MuiSvgIcon-root': { fontSize: 24 }
-            }}
-          >
-            {icon}
-          </Box>
+      <Stack direction="row" spacing={1.5} alignItems="flex-start">
+        <Box
+          sx={{
+            width: 44,
+            height: 44,
+            borderRadius: 1.75,
+            background: iconBg,
+            color,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            '& .MuiSvgIcon-root': { fontSize: 22 }
+          }}
+        >
+          {icon}
+        </Box>
+
+        <Box sx={{ minWidth: 0, flex: 1, pt: 0.15 }}>
           <Typography
-            variant="caption"
             sx={{
-              fontWeight: 700,
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              color: brand.textMuted,
-              fontSize: 12,
-              lineHeight: 1.25
+              fontWeight: 600,
+              fontSize: 14,
+              lineHeight: 1.3,
+              color: brand.text,
+              mb: 0.65
             }}
           >
             {label}
           </Typography>
-        </Stack>
-
-        <Typography
-          sx={{
-            fontWeight: 800,
-            fontSize: 32,
-            lineHeight: 1,
-            letterSpacing: '-0.03em',
-            color: brand.text,
-            fontVariantNumeric: 'tabular-nums',
-            pl: 0.25
-          }}
-        >
-          {formatNumber(value)}
-        </Typography>
+          <Typography
+            sx={{
+              fontWeight: 800,
+              fontSize: 30,
+              lineHeight: 1,
+              letterSpacing: '-0.03em',
+              color: brand.text,
+              fontVariantNumeric: 'tabular-nums'
+            }}
+          >
+            {formatNumber(value)}
+          </Typography>
+        </Box>
       </Stack>
+
+      <Typography
+        variant="caption"
+        sx={{
+          position: 'absolute',
+          right: 16,
+          bottom: 14,
+          fontSize: 12,
+          fontWeight: 500,
+          color: brand.textMuted,
+          lineHeight: 1
+        }}
+      >
+        Range total
+      </Typography>
     </Paper>
   )
 }

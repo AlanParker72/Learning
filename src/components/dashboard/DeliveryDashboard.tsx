@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
 import { Alert, Box, Button, Grid, Skeleton, Stack, Typography } from '@mui/material'
 import {
+  AccessTime,
+  CheckCircleOutline,
   ErrorOutline,
-  HourglassEmptyOutlined,
-  OutboxOutlined,
-  TaskAltOutlined
+  SendOutlined
 } from '@mui/icons-material'
 import { brand } from '../../theme/brand'
 import { formatClockTime, formatDisplayDate } from '../../utils/format'
@@ -16,17 +16,24 @@ import ChannelChart from './ChannelChart'
 import DeliveriesTable from '../deliveries/DeliveriesTable'
 
 const METRIC_ICONS: Record<MetricKey, ReactNode> = {
-  sent: <OutboxOutlined />,
-  queued: <HourglassEmptyOutlined />,
+  sent: <SendOutlined />,
+  queued: <AccessTime />,
   failed: <ErrorOutline />,
-  acknowledged: <TaskAltOutlined />
+  acknowledged: <CheckCircleOutline />
 }
 
 const METRIC_COLORS: Record<MetricKey, string> = {
-  sent: brand.metrics.sent,
-  queued: brand.metrics.queued,
-  failed: brand.metrics.failed,
-  acknowledged: brand.metrics.acknowledged
+  sent: brand.status.sent.color,
+  queued: brand.status.queued.color,
+  failed: brand.status.failed.color,
+  acknowledged: brand.status.acknowledged.color
+}
+
+const METRIC_ICON_BG: Record<MetricKey, string> = {
+  sent: brand.status.sent.bg,
+  queued: brand.status.queued.bg,
+  failed: brand.status.failed.bg,
+  acknowledged: brand.status.acknowledged.bg
 }
 
 export default function DeliveryDashboard() {
@@ -77,7 +84,7 @@ export default function DeliveryDashboard() {
           {dashboard.metrics.length === 0
             ? Array.from({ length: 4 }).map((_, index) => (
                 <Grid item xs={12} sm={6} md={3} key={index}>
-                  <Skeleton variant="rounded" height={112} />
+                  <Skeleton variant="rounded" height={118} />
                 </Grid>
               ))
             : dashboard.metrics.map((card) => (
@@ -86,6 +93,7 @@ export default function DeliveryDashboard() {
                     label={card.label}
                     value={card.value}
                     color={METRIC_COLORS[card.key]}
+                    iconBg={METRIC_ICON_BG[card.key]}
                     icon={METRIC_ICONS[card.key]}
                   />
                 </Grid>
