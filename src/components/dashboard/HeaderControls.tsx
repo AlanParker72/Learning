@@ -22,7 +22,13 @@ export default function HeaderControls({
   lastUpdatedLabel
 }: HeaderControlsProps) {
   return (
-    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+    <Stack
+      direction="row"
+      spacing={1.5}
+      alignItems="center"
+      justifyContent="flex-end"
+      sx={{ width: '100%', flexWrap: 'wrap' }}
+    >
       <Box
         sx={{
           display: 'flex',

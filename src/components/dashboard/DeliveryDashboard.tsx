@@ -43,7 +43,7 @@ export default function DeliveryDashboard() {
   return (
     <Box sx={{ minHeight: '100vh', background: brand.background, px: { xs: 2, md: 3 }, py: 3 }}>
       <Box component="main" sx={{ maxWidth: 1600, mx: 'auto' }}>
-        <Stack sx={{ mb: 3, gap: 1.5 }}>
+        <Stack sx={{ mb: 3, gap: 1.5 }} alignItems="stretch">
           <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.04em', fontSize: { xs: 28, md: 32 } }}>
             Distribution Services Dashboard
           </Typography>
