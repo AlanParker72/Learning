@@ -1,3 +1,5 @@
+import { brand } from './brand'
+
 /** Delivery list status enum — exact API / filter values. */
 export const DELIVERY_STATUSES = [
   'NEW',
@@ -13,68 +15,70 @@ export const DELIVERY_STATUSES = [
 
 export type StatusCode = (typeof DELIVERY_STATUSES)[number]
 
-export const STATUS_CONFIG: Record<
-  StatusCode,
-  {
-    label: string
-    color: string
-    background: string
-    border: string
-  }
-> = {
+type StatusStyle = {
+  label: string
+  color: string
+  background: string
+  border: string
+}
+
+const ds = brand.deliveryStatus
+
+/** Maps each delivery status to label + brand color tokens only. */
+export const STATUS_CONFIG: Record<StatusCode, StatusStyle> = {
   NEW: {
     label: 'New',
-    color: '#6366F1',
-    background: '#EEF0FF',
-    border: '#C7CBF9'
+    color: ds.NEW.color,
+    background: ds.NEW.background,
+    border: ds.NEW.border
   },
   DISPATCHED: {
     label: 'Dispatched',
-    color: '#0D9488',
-    background: '#E6F7F5',
-    border: '#99D8D0'
+    color: ds.DISPATCHED.color,
+    background: ds.DISPATCHED.background,
+    border: ds.DISPATCHED.border
   },
   ERROR_STOP: {
     label: 'Error Stop',
-    color: '#B91C1C',
-    background: '#FEE2E2',
-    border: '#FCA5A5'
+    color: ds.ERROR_STOP.color,
+    background: ds.ERROR_STOP.background,
+    border: ds.ERROR_STOP.border
   },
   ERROR_RETRY: {
     label: 'Error Retry',
-    color: '#C2410C',
-    background: '#FFEDD5',
-    border: '#FDBA74'
+    color: ds.ERROR_RETRY.color,
+    background: ds.ERROR_RETRY.background,
+    border: ds.ERROR_RETRY.border
   },
   PROCESSING: {
     label: 'Processing',
-    color: '#2563EB',
-    background: '#DBEAFE',
-    border: '#93C5FD'
+    color: ds.PROCESSING.color,
+    background: ds.PROCESSING.background,
+    border: ds.PROCESSING.border
   },
   QUEUED: {
     label: 'Queued',
-    color: '#B45309',
-    background: '#FFF1D8',
-    border: '#F7D38B'
+    color: ds.QUEUED.color,
+    background: ds.QUEUED.background,
+    border: ds.QUEUED.border
   },
   FAILED_RETRY: {
     label: 'Failed Retry',
-    color: '#EB4D3D',
-    background: '#FDE7E7',
-    border: '#F6B5B5'
+    color: ds.FAILED_RETRY.color,
+    background: ds.FAILED_RETRY.background,
+    border: ds.FAILED_RETRY.border
   },
   ACKNOWLEDGED: {
     label: 'Acknowledged',
-    color: '#3B82F6',
-    background: '#E9F1FF',
-    border: '#AFCBFF'
+    color: ds.ACKNOWLEDGED.color,
+    background: ds.ACKNOWLEDGED.background,
+    border: ds.ACKNOWLEDGED.border
   },
   COMPLETE: {
     label: 'Complete',
-    color: '#2CBF73',
-    background: '#E9F9EF',
-    border: '#A7E7C1'
+    color: ds.COMPLETE.color,
+    background: ds.COMPLETE.background,
+    border: ds.COMPLETE.border
   }
 }
 
@@ -85,17 +89,17 @@ export function statusLabel(status: StatusCode): string {
 export const CHANNEL_CONFIG = {
   MARKETPLACE_EMAIL: {
     label: 'Marketplace Email',
-    color: '#2F7CF6',
-    background: '#EAF2FF'
+    color: brand.chart.marketToEmail,
+    background: brand.chart.marketToEmailBg
   },
   SMTP_EMAIL: {
     label: 'SMTP Email',
-    color: '#FF5F57',
-    background: '#FFE9E7'
+    color: brand.chart.smtp,
+    background: brand.chart.smtpBg
   },
   PUSH_NOTIFICATION: {
     label: 'Push Notifications',
-    color: '#22B07D',
-    background: '#E8F9F1'
+    color: brand.chart.push,
+    background: brand.chart.pushBg
   }
 } as const
