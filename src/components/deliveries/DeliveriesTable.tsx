@@ -46,12 +46,16 @@ const COLUMNS = [
   'Recipient ID',
   'Application ID',
   'Account ID',
-  'Tenant',
+  'Tenant ID',
   'Source',
   'Date & Time',
   'Delivery Status',
   'Doc link'
 ] as const
+
+/** Prefer recipientId; fall back to customerId when recipientId is null. */
+const recipientDisplayId = (row: Delivery): string =>
+  row.recipientId ?? row.customerId ?? '—'
 
 const headerCellSx = {
   color: '#fff',
@@ -99,7 +103,7 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
     setPayloadLoading(true)
     setPayloadError(null)
     try {
-      const nextPayload = await fetchDeliveryPayload(row.messageId)
+      const nextPayload = await fetchDeliveryPayload(row.id)
       setPayload(nextPayload)
     } catch (cause) {
       setPayload(null)
@@ -147,6 +151,7 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
         commentedBy: 'You',
         commentedDate: nowLabel()
       })
+      // actionMessageId is String(referenceId) — same id used for payload/action APIs
       enqueueSnackbar('Action submitted successfully', { variant: 'success' })
     } catch {
       enqueueSnackbar('Action failed', { variant: 'error' })
@@ -235,12 +240,12 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
                 const rowComments = deliveries.commentsFor(row)
                 const hasComments = rowComments.length > 0
                 return (
-                  <TableRow key={row.messageId} hover>
+                  <TableRow key={row.id} hover>
                     <TableCell sx={{ fontWeight: 600 }}>{row.referenceId}</TableCell>
                     <TableCell>{row.recipientType}</TableCell>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
-                        {row.recipientId}
+                        {recipientDisplayId(row)}
                       </Typography>
                       <Link
                         href="#"
@@ -254,9 +259,9 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
                         recipient details
                       </Link>
                     </TableCell>
-                    <TableCell>{row.applicationId}</TableCell>
-                    <TableCell>{row.accountId}</TableCell>
-                    <TableCell>{row.tenant}</TableCell>
+                    <TableCell>{row.applicationId ?? '—'}</TableCell>
+                    <TableCell>{row.accountId ?? '—'}</TableCell>
+                    <TableCell>{row.tenantId}</TableCell>
                     <TableCell>{row.source}</TableCell>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>{dateTime.date}</Typography>
@@ -287,14 +292,14 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
                           <IconButton
                             size="small"
                             onClick={() => handleViewComments(row)}
-                            aria-label={`View comments for ${row.referenceId}`}
+                            aria-label={`View comments for ${String(row.referenceId)}`}
                           >
                             <ChatBubbleOutline fontSize="small" />
                           </IconButton>
                         )}
                         {/* READ_ONLY: hasAnyAction is false → hide ⋮ Acknowledge/Resend menu */}
                         {hasAnyAction && (
-                          <IconButton size="small" onClick={(event) => openMenu(event, row)} aria-label={`Actions for ${row.referenceId}`}>
+                          <IconButton size="small" onClick={(event) => openMenu(event, row)} aria-label={`Actions for ${String(row.referenceId)}`}>
                             <MoreVert fontSize="small" />
                           </IconButton>
                         )}
@@ -327,7 +332,7 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
         onClose={() => setMenuAnchor(null)}
         onAction={(action) => {
           if (!selectedRow) return
-          startAction(action, selectedRow.messageId)
+          startAction(action, selectedRow.id)
         }}
       />
 
@@ -335,7 +340,7 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
         action={pendingAction}
         comment={actionComment}
         submitting={actionSubmitting}
-        referenceLabel={selectedRow?.referenceId}
+        referenceLabel={selectedRow ? String(selectedRow.referenceId) : undefined}
         onCommentChange={setActionComment}
         onClose={() => {
           setPendingAction(null)
@@ -350,7 +355,7 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
         loading={payloadLoading}
         error={payloadError}
         payload={payload}
-        referenceLabel={selectedRow?.referenceId}
+        referenceLabel={selectedRow ? String(selectedRow.referenceId) : undefined}
         onRetry={selectedRow ? () => void loadPayload(selectedRow) : undefined}
         onClose={() => {
           setPayloadOpen(false)
@@ -362,7 +367,7 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
       <CommentsDrawer
         open={commentsOpen}
         comments={selectedComments}
-        referenceLabel={selectedRow?.referenceId}
+        referenceLabel={selectedRow ? String(selectedRow.referenceId) : undefined}
         onClose={() => setCommentsOpen(false)}
       />
 

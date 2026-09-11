@@ -110,7 +110,8 @@ export const brand = {
       bg: deliveryStatus.ACKNOWLEDGED.background,
       color: deliveryStatus.ACKNOWLEDGED.color
     },
-    resend: { bg: '#faf5f0', color: '#c4904a' }
+    resend: { bg: '#faf5f0', color: '#c4904a' },
+    retry: { bg: '#faf5f0', color: '#c4904a' }
   }
 } as const
 

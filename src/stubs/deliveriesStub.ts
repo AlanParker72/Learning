@@ -1,13 +1,14 @@
-import type { DeliveryApiItem, DeliveriesListResponseApi } from '../api/contracts'
+import type { DeliveryApiItem, DeliveriesListResponseApi, DeliveryCommentApi } from '../api/contracts'
 import { toDashboardRange, type DashboardRangeApi } from '../api/contracts'
 import { parseFlexibleDate } from '../utils/format'
+import { DELIVERY_STATUSES } from '../theme/statusConfig'
 
-export type DeliveriesStubSearchField =
-  | 'customerId'
-  | 'referenceId'
-  | 'recipientId'
-  | 'applicationId'
-  | 'accountId'
+/**
+ * Search fields for stub filtering.
+ * ProspectId: no dedicated API field — filter where recipientType is PROSPECT
+ * and match against customerId / recipientId.
+ */
+export type DeliveriesStubSearchField = 'customerId' | 'prospectId' | 'source'
 
 export type DeliveriesStubParams = {
   search?: string
@@ -17,572 +18,171 @@ export type DeliveriesStubParams = {
   page?: number
   pageSize?: number
   range?: string
-  tableRange?: string
   sortField?: 'dateTime'
   sortDir?: 'asc' | 'desc'
 }
 
-const TABLE_RANGE_MS: Record<string, number> = {
-  'Last 1 hour': 60 * 60 * 1000,
-  'Last 12 hours': 12 * 60 * 60 * 1000,
-  'Last 24 hours': 24 * 60 * 60 * 1000,
-  'Last 7 days': 7 * 24 * 60 * 60 * 1000
+const TENANTS = ['FCB', 'Mosaic', 'CIT', 'AAO', 'OAO'] as const
+const SOURCES = ['DIRECT DEPOSIT1', 'Mosaic', 'OAO', 'Invoice', 'Direct Deposit', 'Prospect Management'] as const
+const CHANNELS = ['MARKETO EMAIL', 'SMTP', 'PUSH'] as const
+const RECIPIENT_TYPES = ['CUSTOMER', 'PROSPECT', 'EMPLOYEE'] as const
+const FAILURE_REASONS = [
+  'Unexpected error in REST call',
+  'Upstream provider timeout',
+  'Mailbox full',
+  'Invalid recipient',
+  'Device unreachable',
+  'Template render error',
+  null
+] as const
+
+const uuid = (n: number): string => {
+  const hex = n.toString(16).padStart(8, '0')
+  return `${hex.slice(0, 8)}-${hex.slice(0, 4)}-4${hex.slice(1, 4)}-8${hex.slice(1, 4)}-${hex.padStart(12, '0').slice(0, 12)}`
 }
 
-const comment = (
+const daysAgoIso = (daysAgo: number, hour = 12, minute = 0): string => {
+  // Anchor near sample API as-of so range windows are stable in stubs.
+  const base = new Date('2026-09-11T21:00:00.000Z')
+  base.setUTCDate(base.getUTCDate() - daysAgo)
+  base.setUTCHours(hour, minute, (daysAgo * 7) % 60, 0)
+  return base.toISOString().replace('Z', '').slice(0, 23)
+}
+
+const makeComment = (
   text: string,
-  action: 'acknowledge' | 'resend',
+  actionOrActtion: { action?: string; acttion?: string },
   by: string,
   at: string
-) => ({ comment: text, action, commentedBy: by, commentedDate: at })
+): DeliveryCommentApi => ({
+  comment: text,
+  ...actionOrActtion,
+  commentedBy: by,
+  commentedDate: at
+})
 
 /**
- * Curated delivery rows matching the list contract.
- * Several rows set `inputAvailable: true` so the Doc link shows "Input".
+ * Build 96 curated rows matching the paginated deliveries contract.
+ * Varied statuses, channels, sources, recipientTypes, comments, flags.
  */
-const DELIVERIES: DeliveryApiItem[] = [
-  {
-    messageId: 'MSG-00010001',
-    id: 'MSG-00010001',
-    referenceId: 'Item 1',
-    recipientType: 'Customer',
-    recipientId: '1234567890',
-    applicationId: '1234567890',
-    accountId: '1234567890',
-    tenant: 'Mosaic',
-    tenantId: 'tenant-1001',
-    trackingId: 'TRK-00010001',
-    source: 'Mosaic',
-    function: 'Prospect Management',
-    deliveryDateTime: '2026-09-09T14:22:00.000Z',
-    deliveryStatus: 'NEW',
-    deliveryChannel: 'Marketplace Email',
-    failureReason: null,
-    retryCount: 0,
-    manualRetryAllowed: false,
-    inputAvailable: true,
-    comments: [
-      comment('Delivery acknowledgement confirmation for Item 1.', 'acknowledge', 'Ops Team', '2026-09-09T14:40:00.000Z')
-    ],
-    recipients: { to: ['to+001@example.com'], cc: [], bcc: [] }
-  },
-  {
-    messageId: 'MSG-00010002',
-    id: 'MSG-00010002',
-    referenceId: 'Item 2',
-    recipientType: 'Prospect',
-    recipientId: '1234567891',
-    applicationId: '1234567891',
-    accountId: '1234567891',
-    tenant: 'FCB',
-    tenantId: 'tenant-1002',
-    trackingId: 'TRK-00010002',
-    source: 'OAO',
-    function: 'Direct Deposit',
-    deliveryDateTime: '2026-09-09T12:05:00.000Z',
-    deliveryStatus: 'DISPATCHED',
-    deliveryChannel: 'SMTP',
-    failureReason: null,
-    retryCount: 0,
-    manualRetryAllowed: true,
-    inputAvailable: true,
-    comments: [
-      comment('Queued for SMTP handoff.', 'resend', 'Support Queue', '2026-09-09T12:20:00.000Z')
-    ],
-    recipients: { to: ['to+002@example.com'], cc: ['cc+002@example.com'], bcc: [] }
-  },
-  {
-    messageId: 'MSG-00010003',
-    id: 'MSG-00010003',
-    referenceId: 'Item 3',
-    recipientType: 'Employee',
-    recipientId: '1234567892',
-    applicationId: '1234567892',
-    accountId: '1234567892',
-    tenant: 'CIT',
-    tenantId: 'tenant-1003',
-    trackingId: 'TRK-00010003',
-    source: 'Direct Deposit',
-    function: 'Payment Settlement',
-    deliveryDateTime: '2026-09-09T09:18:00.000Z',
-    deliveryStatus: 'ERROR_STOP',
-    deliveryChannel: 'Push',
-    failureReason: 'Upstream provider timeout',
-    retryCount: 2,
-    manualRetryAllowed: true,
-    inputAvailable: true,
-    comments: [
-      comment('Provider timeout — retry scheduled.', 'resend', 'Delivery Manager', '2026-09-09T09:35:00.000Z'),
-      comment('Acknowledged after second failure.', 'acknowledge', 'Ops Team', '2026-09-09T10:02:00.000Z')
-    ],
-    recipients: { to: ['to+003@example.com'], cc: [], bcc: ['bcc+003@example.com'] }
-  },
-  {
-    messageId: 'MSG-00010004',
-    id: 'MSG-00010004',
-    referenceId: 'Item 4',
-    recipientType: 'Customer',
-    recipientId: '1234567893',
-    applicationId: '1234567890',
-    accountId: '1234567890',
-    tenant: 'AAO',
-    tenantId: 'tenant-1004',
-    trackingId: 'TRK-00010004',
-    source: 'Invoice',
-    function: 'Risk Review',
-    deliveryDateTime: '2026-09-08T20:44:00.000Z',
-    deliveryStatus: 'ERROR_RETRY',
-    deliveryChannel: 'Marketplace Email',
-    failureReason: null,
-    retryCount: 0,
-    manualRetryAllowed: false,
-    inputAvailable: true,
-    comments: [
-      comment('Customer acknowledged receipt.', 'acknowledge', 'Compliance Review', '2026-09-08T21:00:00.000Z')
-    ],
-    recipients: { to: ['to+004@example.com'], cc: [], bcc: [] }
-  },
-  {
-    messageId: 'MSG-00010005',
-    id: 'MSG-00010005',
-    referenceId: 'Item 5',
-    recipientType: 'Prospect',
-    recipientId: '1234567894',
-    applicationId: '1234567891',
-    accountId: '1234567891',
-    tenant: 'Mosaic',
-    tenantId: 'tenant-1005',
-    trackingId: 'TRK-00010005',
-    source: 'Mosaic',
-    function: 'Prospect Management',
-    deliveryDateTime: '2026-09-08T16:10:00.000Z',
-    deliveryStatus: 'PROCESSING',
-    deliveryChannel: 'SMTP',
-    failureReason: null,
-    retryCount: 1,
-    manualRetryAllowed: false,
-    inputAvailable: false,
-    comments: [],
-    recipients: { to: ['to+005@example.com'], cc: [], bcc: [] }
-  },
-  {
-    messageId: 'MSG-00010006',
-    id: 'MSG-00010006',
-    referenceId: 'Item 6',
-    recipientType: 'Customer',
-    recipientId: '1234567895',
-    applicationId: '1234567892',
-    accountId: '1234567892',
-    tenant: 'FCB',
-    tenantId: 'tenant-1006',
-    trackingId: 'TRK-00010006',
-    source: 'OAO',
-    function: 'Direct Deposit',
-    deliveryDateTime: '2026-09-08T11:30:00.000Z',
-    deliveryStatus: 'QUEUED',
-    deliveryChannel: 'Push',
-    failureReason: null,
-    retryCount: 0,
-    manualRetryAllowed: true,
-    inputAvailable: true,
-    comments: [
-      comment('Waiting on push gateway.', 'acknowledge', 'Support Queue', '2026-09-08T11:45:00.000Z')
-    ],
-    recipients: { to: ['to+006@example.com'], cc: [], bcc: [] }
-  },
-  {
-    messageId: 'MSG-00010007',
-    id: 'MSG-00010007',
-    referenceId: 'Item 7',
-    recipientType: 'Employee',
-    recipientId: '1234567896',
-    applicationId: '1234567890',
-    accountId: '1234567893',
-    tenant: 'CIT',
-    tenantId: 'tenant-1007',
-    trackingId: 'TRK-00010007',
-    source: 'Direct Deposit',
-    function: 'Payment Settlement',
-    deliveryDateTime: '2026-09-07T18:55:00.000Z',
-    deliveryStatus: 'FAILED_RETRY',
-    deliveryChannel: 'Marketplace Email',
-    failureReason: 'Mailbox full',
-    retryCount: 3,
-    manualRetryAllowed: true,
-    inputAvailable: true,
-    comments: [
-      comment('Mailbox full — manual retry allowed.', 'resend', 'Ops Team', '2026-09-07T19:10:00.000Z')
-    ],
-    recipients: { to: ['to+007@example.com'], cc: ['cc+007@example.com'], bcc: [] }
-  },
-  {
-    messageId: 'MSG-00010008',
-    id: 'MSG-00010008',
-    referenceId: 'Item 8',
-    recipientType: 'Customer',
-    recipientId: '1234567897',
-    applicationId: '1234567891',
-    accountId: '1234567890',
-    tenant: 'AAO',
-    tenantId: 'tenant-1008',
-    trackingId: 'TRK-00010008',
-    source: 'Invoice',
-    function: 'Risk Review',
-    deliveryDateTime: '2026-09-07T08:12:00.000Z',
-    deliveryStatus: 'ACKNOWLEDGED',
-    deliveryChannel: 'SMTP',
-    failureReason: null,
-    retryCount: 0,
-    manualRetryAllowed: false,
-    inputAvailable: true,
-    comments: [
-      comment('Risk review acknowledged.', 'acknowledge', 'Compliance Review', '2026-09-07T08:30:00.000Z')
-    ],
-    recipients: { to: ['to+008@example.com'], cc: [], bcc: [] }
-  },
-  {
-    messageId: 'MSG-00010009',
-    id: 'MSG-00010009',
-    referenceId: 'Item 9',
-    recipientType: 'Prospect',
-    recipientId: '1234567898',
-    applicationId: '1234567892',
-    accountId: '1234567891',
-    tenant: 'Mosaic',
-    tenantId: 'tenant-1009',
-    trackingId: 'TRK-00010009',
-    source: 'Mosaic',
-    function: 'Prospect Management',
-    deliveryDateTime: '2026-09-06T22:40:00.000Z',
-    deliveryStatus: 'COMPLETE',
-    deliveryChannel: 'Push',
-    failureReason: null,
-    retryCount: 0,
-    manualRetryAllowed: false,
-    inputAvailable: true,
-    comments: [],
-    recipients: { to: ['to+009@example.com'], cc: [], bcc: [] }
-  },
-  {
-    messageId: 'MSG-00010010',
-    id: 'MSG-00010010',
-    referenceId: 'Item 10',
-    recipientType: 'Customer',
-    recipientId: '1234567899',
-    applicationId: '1234567890',
-    accountId: '1234567892',
-    tenant: 'FCB',
-    tenantId: 'tenant-1010',
-    trackingId: 'TRK-00010010',
-    source: 'OAO',
-    function: 'Direct Deposit',
-    deliveryDateTime: '2026-09-06T15:05:00.000Z',
-    deliveryStatus: 'NEW',
-    deliveryChannel: 'Marketplace Email',
-    failureReason: null,
-    retryCount: 0,
-    manualRetryAllowed: true,
-    inputAvailable: false,
-    comments: [
-      comment('Held in marketplace queue.', 'acknowledge', 'Support Queue', '2026-09-06T15:20:00.000Z')
-    ],
-    recipients: { to: ['to+010@example.com'], cc: [], bcc: [] }
-  },
-  {
-    messageId: 'MSG-00010011',
-    id: 'MSG-00010011',
-    referenceId: 'Item 11',
-    recipientType: 'Employee',
-    recipientId: '1234567900',
-    applicationId: '1234567891',
-    accountId: '1234567893',
-    tenant: 'CIT',
-    tenantId: 'tenant-1011',
-    trackingId: 'TRK-00010011',
-    source: 'Direct Deposit',
-    function: 'Payment Settlement',
-    deliveryDateTime: '2026-09-05T13:28:00.000Z',
-    deliveryStatus: 'DISPATCHED',
-    deliveryChannel: 'SMTP',
-    failureReason: 'Invalid recipient',
-    retryCount: 1,
-    manualRetryAllowed: true,
-    inputAvailable: true,
-    comments: [
-      comment('Invalid recipient address flagged.', 'resend', 'Delivery Manager', '2026-09-05T13:40:00.000Z')
-    ],
-    recipients: { to: ['to+011@example.com'], cc: [], bcc: [] }
-  },
-  {
-    messageId: 'MSG-00010012',
-    id: 'MSG-00010012',
-    referenceId: 'Item 12',
-    recipientType: 'Customer',
-    recipientId: '1234567901',
-    applicationId: '1234567892',
-    accountId: '1234567890',
-    tenant: 'AAO',
-    tenantId: 'tenant-1012',
-    trackingId: 'TRK-00010012',
-    source: 'Invoice',
-    function: 'Risk Review',
-    deliveryDateTime: '2026-09-05T07:50:00.000Z',
-    deliveryStatus: 'ERROR_STOP',
-    deliveryChannel: 'Push',
-    failureReason: null,
-    retryCount: 0,
-    manualRetryAllowed: false,
-    inputAvailable: true,
-    comments: [
-      comment('Push delivery acknowledged.', 'acknowledge', 'Ops Team', '2026-09-05T08:05:00.000Z')
-    ],
-    recipients: { to: ['to+012@example.com'], cc: [], bcc: [] }
-  },
-  {
-    messageId: 'MSG-00010013',
-    id: 'MSG-00010013',
-    referenceId: 'Item 13',
-    recipientType: 'Prospect',
-    recipientId: '1234567902',
-    applicationId: '1234567890',
-    accountId: '1234567891',
-    tenant: 'Mosaic',
-    tenantId: 'tenant-1013',
-    trackingId: 'TRK-00010013',
-    source: 'Mosaic',
-    function: 'Prospect Management',
-    deliveryDateTime: '2026-09-04T19:15:00.000Z',
-    deliveryStatus: 'ERROR_RETRY',
-    deliveryChannel: 'Marketplace Email',
-    failureReason: null,
-    retryCount: 0,
-    manualRetryAllowed: false,
-    inputAvailable: true,
-    comments: [],
-    recipients: { to: ['to+013@example.com'], cc: ['cc+013@example.com'], bcc: [] }
-  },
-  {
-    messageId: 'MSG-00010014',
-    id: 'MSG-00010014',
-    referenceId: 'Item 14',
-    recipientType: 'Customer',
-    recipientId: '1234567903',
-    applicationId: '1234567891',
-    accountId: '1234567892',
-    tenant: 'FCB',
-    tenantId: 'tenant-1014',
-    trackingId: 'TRK-00010014',
-    source: 'OAO',
-    function: 'Direct Deposit',
-    deliveryDateTime: '2026-09-03T10:00:00.000Z',
-    deliveryStatus: 'PROCESSING',
-    deliveryChannel: 'SMTP',
-    failureReason: null,
-    retryCount: 0,
-    manualRetryAllowed: true,
-    inputAvailable: true,
-    comments: [
-      comment('Awaiting SMTP window.', 'acknowledge', 'Support Queue', '2026-09-03T10:15:00.000Z')
-    ],
-    recipients: { to: ['to+014@example.com'], cc: [], bcc: [] }
-  },
-  {
-    messageId: 'MSG-00010015',
-    id: 'MSG-00010015',
-    referenceId: 'Item 15',
-    recipientType: 'Employee',
-    recipientId: '1234567904',
-    applicationId: '1234567892',
-    accountId: '1234567893',
-    tenant: 'CIT',
-    tenantId: 'tenant-1015',
-    trackingId: 'TRK-00010015',
-    source: 'Direct Deposit',
-    function: 'Payment Settlement',
-    deliveryDateTime: '2026-09-02T16:42:00.000Z',
-    deliveryStatus: 'QUEUED',
-    deliveryChannel: 'Push',
-    failureReason: 'Device unreachable',
-    retryCount: 2,
-    manualRetryAllowed: true,
-    inputAvailable: false,
-    comments: [
-      comment('Device unreachable for push.', 'resend', 'Delivery Manager', '2026-09-02T17:00:00.000Z')
-    ],
-    recipients: { to: ['to+015@example.com'], cc: [], bcc: [] }
-  },
-  {
-    messageId: 'MSG-00010016',
-    id: 'MSG-00010016',
-    referenceId: 'Item 16',
-    recipientType: 'Customer',
-    recipientId: '1234567905',
-    applicationId: '1234567890',
-    accountId: '1234567890',
-    tenant: 'AAO',
-    tenantId: 'tenant-1016',
-    trackingId: 'TRK-00010016',
-    source: 'Invoice',
-    function: 'Risk Review',
-    deliveryDateTime: '2026-09-01T12:25:00.000Z',
-    deliveryStatus: 'FAILED_RETRY',
-    deliveryChannel: 'Marketplace Email',
-    failureReason: null,
-    retryCount: 0,
-    manualRetryAllowed: false,
-    inputAvailable: true,
-    comments: [
-      comment('Invoice delivery acknowledged.', 'acknowledge', 'Compliance Review', '2026-09-01T12:40:00.000Z')
-    ],
-    recipients: { to: ['to+016@example.com'], cc: [], bcc: [] }
-  },
-  {
-    messageId: 'MSG-00010017',
-    id: 'MSG-00010017',
-    referenceId: 'Item 17',
-    recipientType: 'Prospect',
-    recipientId: '1234567906',
-    applicationId: '1234567891',
-    accountId: '1234567891',
-    tenant: 'Mosaic',
-    tenantId: 'tenant-1017',
-    trackingId: 'TRK-00010017',
-    source: 'Mosaic',
-    function: 'Prospect Management',
-    deliveryDateTime: '2026-08-31T09:05:00.000Z',
-    deliveryStatus: 'ACKNOWLEDGED',
-    deliveryChannel: 'SMTP',
-    failureReason: null,
-    retryCount: 0,
-    manualRetryAllowed: false,
-    inputAvailable: true,
-    comments: [],
-    recipients: { to: ['to+017@example.com'], cc: [], bcc: [] }
-  },
-  {
-    messageId: 'MSG-00010018',
-    id: 'MSG-00010018',
-    referenceId: 'Item 18',
-    recipientType: 'Customer',
-    recipientId: '1234567907',
-    applicationId: '1234567892',
-    accountId: '1234567892',
-    tenant: 'FCB',
-    tenantId: 'tenant-1018',
-    trackingId: 'TRK-00010018',
-    source: 'OAO',
-    function: 'Direct Deposit',
-    deliveryDateTime: '2026-08-30T21:18:00.000Z',
-    deliveryStatus: 'COMPLETE',
-    deliveryChannel: 'Push',
-    failureReason: null,
-    retryCount: 0,
-    manualRetryAllowed: true,
-    inputAvailable: true,
-    comments: [
-      comment('Queued overnight for push.', 'acknowledge', 'Support Queue', '2026-08-30T21:30:00.000Z')
-    ],
-    recipients: { to: ['to+018@example.com'], cc: [], bcc: [] }
-  },
-  {
-    messageId: 'MSG-00010019',
-    id: 'MSG-00010019',
-    referenceId: 'Item 19',
-    recipientType: 'Employee',
-    recipientId: '1234567908',
-    applicationId: '1234567890',
-    accountId: '1234567893',
-    tenant: 'CIT',
-    tenantId: 'tenant-1019',
-    trackingId: 'TRK-00010019',
-    source: 'Direct Deposit',
-    function: 'Payment Settlement',
-    deliveryDateTime: '2026-08-29T14:33:00.000Z',
-    deliveryStatus: 'PROCESSING',
-    deliveryChannel: 'Marketplace Email',
-    failureReason: 'Template render error',
-    retryCount: 1,
-    manualRetryAllowed: true,
-    inputAvailable: true,
-    comments: [
-      comment('Template render error — resend after fix.', 'resend', 'Ops Team', '2026-08-29T14:50:00.000Z')
-    ],
-    recipients: { to: ['to+019@example.com'], cc: [], bcc: ['bcc+019@example.com'] }
-  },
-  {
-    messageId: 'MSG-00010020',
-    id: 'MSG-00010020',
-    referenceId: 'Item 20',
-    recipientType: 'Customer',
-    recipientId: '1234567909',
-    applicationId: '1234567891',
-    accountId: '1234567890',
-    tenant: 'AAO',
-    tenantId: 'tenant-1020',
-    trackingId: 'TRK-00010020',
-    source: 'Invoice',
-    function: 'Risk Review',
-    deliveryDateTime: '2026-08-28T06:48:00.000Z',
-    deliveryStatus: 'FAILED_RETRY',
-    deliveryChannel: 'SMTP',
-    failureReason: null,
-    retryCount: 0,
-    manualRetryAllowed: false,
-    inputAvailable: true,
-    comments: [
-      comment('SMTP delivery acknowledged.', 'acknowledge', 'Compliance Review', '2026-08-28T07:05:00.000Z')
-    ],
-    recipients: { to: ['to+020@example.com'], cc: [], bcc: [] }
-  },
-  {
-    messageId: 'MSG-00010021',
-    id: 'MSG-00010021',
-    referenceId: 'Item 21',
-    recipientType: 'Prospect',
-    recipientId: '1234567910',
-    applicationId: '1234567892',
-    accountId: '1234567891',
-    tenant: 'Mosaic',
-    tenantId: 'tenant-1021',
-    trackingId: 'TRK-00010021',
-    source: 'Mosaic',
-    function: 'Prospect Management',
-    deliveryDateTime: '2026-08-27T17:20:00.000Z',
-    deliveryStatus: 'DISPATCHED',
-    deliveryChannel: 'Push',
-    failureReason: null,
-    retryCount: 0,
-    manualRetryAllowed: false,
-    inputAvailable: true,
-    comments: [],
-    recipients: { to: ['to+021@example.com'], cc: [], bcc: [] }
-  },
-  {
-    messageId: 'MSG-00010022',
-    id: 'MSG-00010022',
-    referenceId: 'Item 22',
-    recipientType: 'Customer',
-    recipientId: '1234567911',
-    applicationId: '1234567890',
-    accountId: '1234567892',
-    tenant: 'FCB',
-    tenantId: 'tenant-1022',
-    trackingId: 'TRK-00010022',
-    source: 'OAO',
-    function: 'Direct Deposit',
-    deliveryDateTime: '2026-09-09T01:05:00.000Z',
-    deliveryStatus: 'COMPLETE',
-    deliveryChannel: 'Marketplace Email',
-    failureReason: null,
-    retryCount: 0,
-    manualRetryAllowed: false,
-    inputAvailable: true,
-    comments: [
-      comment('Early-morning marketplace send.', 'acknowledge', 'Ops Team', '2026-09-09T01:20:00.000Z')
-    ],
-    recipients: { to: ['to+022@example.com'], cc: [], bcc: [] }
+function buildDeliveries(): DeliveryApiItem[] {
+  const rows: DeliveryApiItem[] = []
+
+  for (let i = 1; i <= 96; i += 1) {
+    // Skip 463 — reserved for the explicit API sample row below.
+    const referenceId = 400 + i === 463 ? 499 : 400 + i
+    const recipientType = RECIPIENT_TYPES[(i - 1) % RECIPIENT_TYPES.length]
+    const status = DELIVERY_STATUSES[(i - 1) % DELIVERY_STATUSES.length]
+    const channel = CHANNELS[(i - 1) % CHANNELS.length]
+    const source = SOURCES[(i - 1) % SOURCES.length]
+    const tenantId = TENANTS[(i - 1) % TENANTS.length]
+    const daysAgo = (i - 1) % 32 // spreads across ~1 month for range slices
+    const customerId = recipientType === 'EMPLOYEE' && i % 5 === 0 ? null : String(1000 + (i % 40))
+    const recipientId =
+      i % 7 === 0 ? null : recipientType === 'PROSPECT' ? `P-${2000 + i}` : `R-${3000 + i}`
+    const applicationId = i % 4 === 0 ? null : `APP-${5000 + (i % 12)}`
+    const accountId = i % 5 === 0 ? null : `ACCT-${6000 + (i % 15)}`
+    const inputAvailable = i % 3 !== 0
+    const manualRetryAllowed = status === 'ERROR_STOP' || status === 'ERROR_RETRY' || status === 'FAILED_RETRY' || i % 2 === 0
+    const failureReason =
+      status === 'ERROR_STOP' || status === 'ERROR_RETRY' || status === 'FAILED_RETRY'
+        ? FAILURE_REASONS[(i - 1) % FAILURE_REASONS.length]
+        : null
+    const functionName = i % 6 === 0 ? null : source.includes('Deposit') ? 'Direct Deposit' : 'Alert Dispatch'
+
+    let comments: DeliveryCommentApi[] | null | undefined
+    if (i % 11 === 0) {
+      comments = undefined // missing
+    } else if (i % 9 === 0) {
+      comments = null
+    } else if (i % 5 === 0) {
+      comments = []
+    } else if (i % 4 === 0) {
+      // API typo path — acttion only
+      comments = [
+        makeComment('TEST COMMENTS', { acttion: 'RETRY' }, 'TEST', daysAgoIso(Math.max(0, daysAgo - 1), 17, 43))
+      ]
+    } else if (i % 3 === 0) {
+      comments = [
+        makeComment('Queued for handoff.', { action: 'resend' }, 'Support Queue', daysAgoIso(Math.max(0, daysAgo - 1), 12, 20)),
+        makeComment('Follow-up note.', { action: 'acknowledge' }, 'Ops Team', daysAgoIso(Math.max(0, daysAgo - 1), 14, 5))
+      ]
+    } else {
+      comments = [
+        makeComment(
+          `Delivery note for reference ${referenceId}.`,
+          { action: i % 2 === 0 ? 'acknowledge' : 'resend' },
+          i % 2 === 0 ? 'Ops Team' : 'Delivery Manager',
+          daysAgoIso(Math.max(0, daysAgo - 1), 10, 15)
+        )
+      ]
+    }
+
+    rows.push({
+      referenceId,
+      recipients: {
+        to: [`to+${String(i).padStart(3, '0')}@test.com`, ...(i % 2 === 0 ? [`to2+${i}@test.com`] : [])],
+        cc: i % 3 === 0 ? [`cc+${i}@test.com`] : [],
+        bcc: i % 4 === 0 ? [`bcc+${i}@test.com`] : []
+      },
+      tenantId,
+      correlationId: uuid(referenceId),
+      customerId,
+      recipientType,
+      recipientId,
+      applicationId,
+      accountId,
+      source,
+      function: functionName,
+      deliveryDateTime: daysAgoIso(daysAgo, 8 + (i % 12), (i * 3) % 60),
+      deliveryStatus: status,
+      deliveryChannel: channel,
+      failureReason,
+      retryCount: status.includes('RETRY') || status === 'ERROR_STOP' ? (i % 4) : 0,
+      manualRetryAllowed,
+      inputAvailable,
+      comments
+    })
   }
-]
+
+  // Explicit sample matching the provided API example shape (near top of list by date).
+  rows.unshift({
+    referenceId: 463,
+    recipients: {
+      to: ['sam.prad@test.com', 'sam.prad2@test.com'],
+      cc: ['sam.prad@test.com', 'sam.prad2@test.com'],
+      bcc: ['sam.prad@test.com', 'sam.prad2@test.com']
+    },
+    tenantId: 'FCB',
+    correlationId: '24ba5d35-7bb1-48be-8a48-1c6c875b995a',
+    customerId: '123',
+    recipientType: 'CUSTOMER',
+    recipientId: null,
+    applicationId: null,
+    accountId: null,
+    source: 'DIRECT DEPOSIT1',
+    function: null,
+    deliveryDateTime: '2026-09-10T15:56:02.497',
+    deliveryStatus: 'ERROR_STOP',
+    deliveryChannel: 'MARKETO EMAIL',
+    failureReason: 'Unexpected error in REST call',
+    retryCount: 0,
+    manualRetryAllowed: true,
+    inputAvailable: true,
+    comments: [
+      {
+        comment: 'TEST COMMENTS',
+        acttion: 'RETRY',
+        commentedBy: 'TEST',
+        commentedDate: '2026-09-11T17:43:58.682'
+      }
+    ]
+  })
+
+  return rows
+}
+
+const DELIVERIES: DeliveryApiItem[] = buildDeliveries()
 
 /** Slice the curated list by dashboard range window (by deliveryDateTime). */
 const byDashboardRange = (range: DashboardRangeApi): DeliveryApiItem[] => {
@@ -597,40 +197,31 @@ const byDashboardRange = (range: DashboardRangeApi): DeliveryApiItem[] => {
   })
 }
 
-const searchValue = (item: DeliveryApiItem, field: DeliveriesStubSearchField): string => {
+const isProspect = (item: DeliveryApiItem): boolean =>
+  item.recipientType.trim().toUpperCase() === 'PROSPECT'
+
+/**
+ * Resolve the searchable string for a given searchBy field.
+ * ProspectId: only PROSPECT rows; match customerId then recipientId.
+ */
+const matchesSearch = (item: DeliveryApiItem, field: DeliveriesStubSearchField, keyword: string): boolean => {
   switch (field) {
-    case 'referenceId':
-      return item.referenceId ?? ''
-    case 'recipientId':
-      return item.recipientId
-    case 'applicationId':
-      return item.applicationId
-    case 'accountId':
-      return item.accountId
+    case 'source':
+      return item.source.toLowerCase().includes(keyword)
+    case 'prospectId': {
+      if (!isProspect(item)) return false
+      const prospectKey = (item.recipientId ?? item.customerId ?? '').toLowerCase()
+      return prospectKey.includes(keyword)
+    }
     case 'customerId':
-    default:
-      return item.recipientId
+    default: {
+      const customerKey = (item.customerId ?? item.recipientId ?? '').toLowerCase()
+      return customerKey.includes(keyword)
+    }
   }
 }
 
-const applyTableRange = (items: DeliveryApiItem[], tableRange?: string): DeliveryApiItem[] => {
-  const windowMs = tableRange ? TABLE_RANGE_MS[tableRange] : undefined
-  if (!windowMs) return items
-
-  const timestamps = items
-    .map((item) => parseFlexibleDate(item.deliveryDateTime)?.getTime() ?? 0)
-    .filter((value) => value > 0)
-
-  if (timestamps.length === 0) return items
-
-  const latest = Math.max(...timestamps)
-  return items.filter((item) => {
-    const time = parseFlexibleDate(item.deliveryDateTime)?.getTime()
-    return time !== undefined && latest - time <= windowMs
-  })
-}
-
-/** GET /alerts-admin/v1/deliveries stub — filters the curated object list by request params. */
+/** GET /alerts-admin/v1/deliveries stub — filters then returns paginated `records` shape. */
 export function getDeliveriesStub(params: DeliveriesStubParams = {}): DeliveriesListResponseApi {
   const {
     search,
@@ -640,7 +231,6 @@ export function getDeliveriesStub(params: DeliveriesStubParams = {}): Deliveries
     page = 1,
     pageSize = 10,
     range = 'TWO_WEEKS',
-    tableRange,
     sortField = 'dateTime',
     sortDir = 'desc'
   } = params
@@ -649,11 +239,10 @@ export function getDeliveriesStub(params: DeliveriesStubParams = {}): Deliveries
   const dashboardRange = toDashboardRange(range)
 
   let items = byDashboardRange(dashboardRange)
-  items = applyTableRange(items, tableRange)
 
   if (search?.trim()) {
     const keyword = search.trim().toLowerCase()
-    items = items.filter((item) => searchValue(item, searchBy).toLowerCase().includes(keyword))
+    items = items.filter((item) => matchesSearch(item, searchBy, keyword))
   }
 
   if (selectedStatuses.length > 0) {
@@ -671,9 +260,18 @@ export function getDeliveriesStub(params: DeliveriesStubParams = {}): Deliveries
     return sortDir === 'asc' ? leftTime - rightTime : rightTime - leftTime
   })
 
-  const total = items.length
-  const start = (page - 1) * pageSize
+  const totalRecords = items.length
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
+  const safePage = Math.min(Math.max(1, page), totalPages)
+  const start = (safePage - 1) * pageSize
   const pageItems = items.slice(start, start + pageSize)
 
-  return { items: pageItems, total }
+  return {
+    page: safePage,
+    pageSize,
+    totalPages,
+    asofDateTime: '2026-09-11T21:00:24.642264381',
+    totalRecords,
+    records: pageItems
+  }
 }

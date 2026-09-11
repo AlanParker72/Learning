@@ -12,7 +12,8 @@ type HeaderControlsProps = {
 
 const HEADER_RANGES: Array<{ label: string; value: DashboardRangeUi }> = [
   { label: '1 Week', value: 'ONE_WEEK' },
-  { label: '2 Weeks', value: 'TWO_WEEKS' }
+  { label: '2 Weeks', value: 'TWO_WEEKS' },
+  { label: '1 Month', value: 'THIRTY_DAYS' }
 ]
 
 export default function HeaderControls({

@@ -103,7 +103,7 @@ export function useDashboardData(initialRange: DashboardRangeUi = 'ONE_WEEK') {
     }
   }, [])
 
-  /** Top header 1W / 2W: refresh KPIs, both charts, and (via prop) deliveries list. */
+  /** Top header 1W / 2W / 1M: refresh KPIs, both charts, and (via prop) deliveries list. */
   const handleHeaderRangeChange = useCallback((range: DashboardRangeUi) => {
     setHeaderRange(range)
     setStatusRange(range)

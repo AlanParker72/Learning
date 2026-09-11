@@ -49,7 +49,9 @@ export default function CommentsDrawer({ open, comments, referenceLabel, onClose
           ) : (
             <Stack spacing={0}>
               {comments.map((comment, index) => {
-                const actionColor = brand.actionColors[comment.action]
+                const actionKey = comment.action.trim().toLowerCase() as keyof typeof brand.actionColors
+                const actionColor =
+                  brand.actionColors[actionKey] ?? { bg: brand.surfaceLight, color: brand.textMuted }
                 const isLast = index === comments.length - 1
 
                 return (

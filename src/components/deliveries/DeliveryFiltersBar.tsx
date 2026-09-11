@@ -25,17 +25,15 @@ type DeliveryFiltersBarProps = {
   onReset: () => void
 }
 
+/** Only customerId / ProspectId / Source for ID/search filters. */
 const SEARCH_BY_OPTIONS: Array<{ label: string; value: SearchField }> = [
   { label: 'Customer ID', value: 'customerId' },
-  { label: 'Reference ID', value: 'referenceId' },
-  { label: 'Recipient ID', value: 'recipientId' },
-  { label: 'Application ID', value: 'applicationId' },
-  { label: 'Account ID', value: 'accountId' }
+  { label: 'Prospect ID', value: 'prospectId' },
+  { label: 'Source', value: 'source' }
 ]
 
 const STATUS_OPTIONS = DELIVERY_STATUSES
-const CHANNEL_OPTIONS = ['Marketplace Email', 'SMTP', 'Push']
-const RANGE_OPTIONS = ['Last 1 hour', 'Last 12 hours', 'Last 24 hours', 'Last 7 days']
+const CHANNEL_OPTIONS = ['MARKETO EMAIL', 'SMTP', 'PUSH']
 
 const compactFieldSx = {
   minWidth: 148,
@@ -180,19 +178,6 @@ export default function DeliveryFiltersBar({ filters, onChange, onSearch, onRese
           >
             <MenuItem value="all">All channels</MenuItem>
             {CHANNEL_OPTIONS.map((option) => (
-              <MenuItem key={option} value={option}>{option}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <FormControl size="small" sx={selectFieldSx}>
-          <InputLabel>Range</InputLabel>
-          <Select
-            label="Range"
-            value={filters.tableRange}
-            onChange={(event) => onChange({ ...filters, tableRange: event.target.value })}
-          >
-            {RANGE_OPTIONS.map((option) => (
               <MenuItem key={option} value={option}>{option}</MenuItem>
             ))}
           </Select>

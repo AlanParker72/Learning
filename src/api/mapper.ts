@@ -34,6 +34,13 @@ const asBoolean = (value: unknown, fallback = false): boolean =>
 const asStringArray = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
 
+const asNullableString = (value: unknown): string | null => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  return null
+}
+
 const STATUS_SET = new Set<string>(DELIVERY_STATUSES)
 
 /** Map legacy display labels and aggregate keys onto the delivery list enum. */
@@ -68,15 +75,21 @@ export const mapDeliveryStatus = (value: unknown): DeliveryStatus => {
 
 export const mapDeliveryAction = (value: unknown): DeliveryActionType => {
   const normalized = asString(value).trim().toLowerCase()
-  return normalized === 'resend' ? 'resend' : 'acknowledge'
+  return normalized === 'resend' || normalized === 'retry' ? 'resend' : 'acknowledge'
 }
 
+/**
+ * Map a comment row. Accepts API typo `acttion` as well as `action`.
+ * Missing / null comments arrays are handled by the caller — this never throws.
+ */
 export const mapDeliveryComment = (raw: DeliveryCommentApi | Record<string, unknown>, index = 0): DeliveryComment => {
-  const record = raw as Record<string, unknown>
+  const record: Record<string, unknown> = isRecord(raw) ? { ...raw } : {}
+  // Prefer correct `action`; fall back to API typo `acttion`.
+  const rawAction = asString(record.action ?? record.acttion).trim()
   return {
     id: asString(record.id, `comment-${index}`),
     comment: asString(record.comment),
-    action: mapDeliveryAction(record.action),
+    action: rawAction || 'unknown',
     commentedBy: asString(record.commentedBy, 'Unknown'),
     commentedDate: asString(record.commentedDate)
   }
@@ -92,27 +105,36 @@ export const mapRecipients = (raw: unknown): DeliveryRecipients => {
 }
 
 export const mapDeliveryItem = (raw: DeliveryApiItem | Record<string, unknown>, index = 0): Delivery => {
-  const record = raw as Record<string, unknown>
-  const messageId = asString(record.messageId) || asString(record.id) || `delivery-${index + 1}`
+  const record: Record<string, unknown> = isRecord(raw) ? { ...raw } : {}
+  const referenceId =
+    typeof record.referenceId === 'number' && Number.isFinite(record.referenceId)
+      ? record.referenceId
+      : asNumber(Number(asString(record.referenceId)), index + 1)
+  // Action/payload path id: prefer referenceId (stable); correlationId only if missing.
+  const id =
+    referenceId > 0
+      ? String(referenceId)
+      : asString(record.correlationId) || `delivery-${index + 1}`
+
   const commentsRaw = Array.isArray(record.comments) ? record.comments : []
 
   return {
-    id: messageId,
-    messageId,
+    id,
+    messageId: id,
+    referenceId,
+    correlationId: asString(record.correlationId),
+    customerId: asNullableString(record.customerId),
     tenantId: asString(record.tenantId),
-    trackingId: asString(record.trackingId),
-    referenceId: asString(record.referenceId, messageId),
     recipientType: asString(record.recipientType),
-    recipientId: asString(record.recipientId),
-    applicationId: asString(record.applicationId),
-    accountId: asString(record.accountId),
-    tenant: asString(record.tenant),
+    recipientId: asNullableString(record.recipientId),
+    applicationId: asNullableString(record.applicationId),
+    accountId: asNullableString(record.accountId),
     source: asString(record.source),
-    functionName: asString(record.function ?? record.functionName),
+    functionName: asNullableString(record.function ?? record.functionName),
     deliveryDateTime: asString(record.deliveryDateTime ?? record.dateTime),
     deliveryStatus: mapDeliveryStatus(record.deliveryStatus),
     deliveryChannel: asString(record.deliveryChannel ?? record.channel),
-    failureReason: asString(record.failureReason) || null,
+    failureReason: asNullableString(record.failureReason),
     retryCount: asNumber(record.retryCount, 0),
     manualRetryAllowed: asBoolean(record.manualRetryAllowed, true),
     inputAvailable: asBoolean(record.inputAvailable, false),
@@ -126,10 +148,24 @@ export const mapDeliveryItem = (raw: DeliveryApiItem | Record<string, unknown>, 
 export function mapDeliveriesResponse(raw: unknown): FetchResult {
   if (!isRecord(raw)) return { items: [], total: 0 }
 
-  const list = (raw as DeliveriesListResponseApi).items ?? (raw as DeliveriesListResponseApi).data
+  const response = raw as DeliveriesListResponseApi & { items?: DeliveryApiItem[]; data?: DeliveryApiItem[]; total?: number }
+  const list = response.records ?? response.items ?? response.data
   const items = Array.isArray(list) ? list.map((item, index) => mapDeliveryItem(item, index)) : []
-  const total = typeof raw.total === 'number' ? raw.total : items.length
-  return { items, total }
+  const total =
+    typeof response.totalRecords === 'number'
+      ? response.totalRecords
+      : typeof response.total === 'number'
+        ? response.total
+        : items.length
+
+  return {
+    items,
+    total,
+    page: typeof response.page === 'number' ? response.page : undefined,
+    pageSize: typeof response.pageSize === 'number' ? response.pageSize : undefined,
+    totalPages: typeof response.totalPages === 'number' ? response.totalPages : undefined,
+    asofDateTime: typeof response.asofDateTime === 'string' ? response.asofDateTime : undefined
+  }
 }
 
 const mapStatusPoint = (raw: unknown): DashboardStatusPointApi | null => {
