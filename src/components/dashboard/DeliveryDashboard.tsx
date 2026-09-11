@@ -37,7 +37,7 @@ const METRIC_ICON_BG: Record<MetricKey, string> = {
 }
 
 export default function DeliveryDashboard() {
-  const dashboard = useDashboardData('ONE_WEEK')
+  const dashboard = useDashboardData('TWO_WEEKS')
   const rangeLabel = `${formatDisplayDate(dashboard.rangeWindow.from)} – ${formatDisplayDate(dashboard.rangeWindow.to)}`
 
   return (

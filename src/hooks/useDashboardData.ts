@@ -45,7 +45,7 @@ const summarizeMetric = (rows: DashboardStatusPoint[], key: MetricKey): MetricSu
   value: rows.reduce((sum, row) => sum + row[key], 0)
 })
 
-export function useDashboardData(initialRange: DashboardRangeUi = 'ONE_WEEK') {
+export function useDashboardData(initialRange: DashboardRangeUi = 'TWO_WEEKS') {
   const [headerRange, setHeaderRange] = useState<DashboardRangeUi>(initialRange)
   const [statusRange, setStatusRange] = useState<DashboardRangeUi>(initialRange)
   const [channelRange, setChannelRange] = useState<DashboardRangeUi>(initialRange)

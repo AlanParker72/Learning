@@ -21,7 +21,6 @@ export default function ActionConfirmDialog({
   onClose,
   onSubmit
 }: ActionConfirmDialogProps) {
-  const isValid = comment.trim().length > 0
   const title = action === 'acknowledge' ? 'Acknowledge delivery' : 'Resend delivery'
 
   return (
@@ -38,16 +37,16 @@ export default function ActionConfirmDialog({
           multiline
           minRows={4}
           fullWidth
-          label="Comment"
-          placeholder="Add a note before submitting..."
+          label="Comment (optional)"
+          placeholder="Add an optional note before submitting..."
           value={comment}
           onChange={(event) => onCommentChange(event.target.value)}
           onKeyDown={(event) => {
-            if ((event.metaKey || event.ctrlKey) && event.key === 'Enter' && isValid && !submitting) {
+            if ((event.metaKey || event.ctrlKey) && event.key === 'Enter' && !submitting) {
               onSubmit()
             }
           }}
-          helperText="A comment is required so the activity timeline stays complete."
+          helperText="Comment is optional. Leave blank if no note is needed."
           sx={{ mt: 1 }}
         />
       </DialogContent>
@@ -55,7 +54,7 @@ export default function ActionConfirmDialog({
         <Button variant="outlined" onClick={onClose} disabled={submitting} sx={{ color: brand.textMuted, borderColor: brand.border }}>
           Cancel
         </Button>
-        <Button variant="contained" onClick={onSubmit} disabled={submitting || !isValid} sx={{ background: brand.primary, '&:hover': { background: brand.primaryDark } }}>
+        <Button variant="contained" onClick={onSubmit} disabled={submitting} sx={{ background: brand.primary, '&:hover': { background: brand.primaryDark } }}>
           {submitting ? 'Submitting...' : 'Submit'}
         </Button>
       </DialogActions>

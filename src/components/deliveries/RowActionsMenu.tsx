@@ -8,16 +8,19 @@ type RowActionsMenuProps = {
   onAction: (action: DeliveryActionType) => void
   /** Role-derived actions to show. Empty → menu stays closed / unused. */
   allowedActions?: readonly DeliveryActionPermission[]
+  /** When false, Resend is hidden even if the role allows it. */
+  manualRetryAllowed?: boolean
 }
 
 export default function RowActionsMenu({
   anchorEl,
   onClose,
   onAction,
-  allowedActions = ['acknowledge', 'resend']
+  allowedActions = ['acknowledge', 'resend'],
+  manualRetryAllowed = true
 }: RowActionsMenuProps) {
   const showAcknowledge = allowedActions.includes('acknowledge')
-  const showResend = allowedActions.includes('resend')
+  const showResend = allowedActions.includes('resend') && manualRetryAllowed
 
   if (!showAcknowledge && !showResend) {
     return null

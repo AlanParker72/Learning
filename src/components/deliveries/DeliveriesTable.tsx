@@ -131,13 +131,14 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
   }
 
   const handleActionSubmit = async () => {
-    if (!pendingAction || !actionComment.trim() || !actionMessageId) return
+    if (!pendingAction || !actionMessageId) return
+    const comment = actionComment.trim()
     setActionSubmitting(true)
     try {
       const result = await submitDeliveryAction({
         messageId: actionMessageId,
         action: pendingAction,
-        comment: actionComment.trim()
+        comment
       })
       if (!result.success) {
         enqueueSnackbar('Action failed', { variant: 'error' })
@@ -146,7 +147,7 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
 
       deliveries.prependComment([actionMessageId], {
         id: `${actionMessageId}-${Date.now()}`,
-        comment: actionComment.trim(),
+        comment,
         action: pendingAction,
         commentedBy: 'You',
         commentedDate: nowLabel()
@@ -329,6 +330,7 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
       <RowActionsMenu
         anchorEl={menuAnchor}
         allowedActions={allowedActions}
+        manualRetryAllowed={selectedRow?.manualRetryAllowed ?? false}
         onClose={() => setMenuAnchor(null)}
         onAction={(action) => {
           if (!selectedRow) return
