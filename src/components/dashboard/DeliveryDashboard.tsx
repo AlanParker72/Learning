@@ -43,20 +43,10 @@ export default function DeliveryDashboard() {
   return (
     <Box sx={{ minHeight: '100vh', background: brand.background, px: { xs: 2, md: 3 }, py: 3 }}>
       <Box component="main" sx={{ maxWidth: 1600, mx: 'auto' }}>
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          justifyContent="space-between"
-          alignItems={{ md: 'flex-start' }}
-          sx={{ mb: 3, gap: 2 }}
-        >
-          <Box>
-            <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.04em', mb: 0.5, fontSize: { xs: 28, md: 32 } }}>
-              Distribution Services Dashboard
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Overview of message delivery across all channels
-            </Typography>
-          </Box>
+        <Stack sx={{ mb: 3, gap: 1.5 }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.04em', fontSize: { xs: 28, md: 32 } }}>
+            Distribution Services Dashboard
+          </Typography>
 
           <HeaderControls
             range={dashboard.headerRange}
