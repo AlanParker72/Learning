@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
 import { Alert, Box, Button, Grid, Skeleton, Stack, Typography } from '@mui/material'
 import {
-  Cancel,
-  CheckCircle,
-  AccessTimeFilled,
-  Send
+  ErrorOutline,
+  HourglassEmptyOutlined,
+  OutboxOutlined,
+  TaskAltOutlined
 } from '@mui/icons-material'
 import { brand } from '../../theme/brand'
 import { formatClockTime, formatDisplayDate } from '../../utils/format'
@@ -16,10 +16,10 @@ import ChannelChart from './ChannelChart'
 import DeliveriesTable from '../deliveries/DeliveriesTable'
 
 const METRIC_ICONS: Record<MetricKey, ReactNode> = {
-  sent: <Send fontSize="small" />,
-  queued: <AccessTimeFilled fontSize="small" />,
-  failed: <Cancel fontSize="small" />,
-  acknowledged: <CheckCircle fontSize="small" />
+  sent: <OutboxOutlined sx={{ fontSize: 20 }} />,
+  queued: <HourglassEmptyOutlined sx={{ fontSize: 20 }} />,
+  failed: <ErrorOutline sx={{ fontSize: 20 }} />,
+  acknowledged: <TaskAltOutlined sx={{ fontSize: 20 }} />
 }
 
 const METRIC_COLORS: Record<MetricKey, string> = {
@@ -77,7 +77,7 @@ export default function DeliveryDashboard() {
           {dashboard.metrics.length === 0
             ? Array.from({ length: 4 }).map((_, index) => (
                 <Grid item xs={12} sm={6} md={3} key={index}>
-                  <Skeleton variant="rounded" height={128} />
+                  <Skeleton variant="rounded" height={124} />
                 </Grid>
               ))
             : dashboard.metrics.map((card) => (
@@ -102,14 +102,19 @@ export default function DeliveryDashboard() {
               <StatusChart
                 data={dashboard.statusResponse?.data ?? []}
                 range={dashboard.statusRange}
-                onRangeChange={dashboard.setStatusRange}
+                onRangeChange={dashboard.handleStatusRangeChange}
                 loading={dashboard.statusLoading}
               />
             </Box>
           </Grid>
           <Grid item xs={12} lg={5} sx={{ display: 'flex' }}>
             <Box sx={{ width: '100%', display: 'flex', '& > *': { flex: 1 } }}>
-              <ChannelChart data={dashboard.channelResponse?.data ?? []} loading={dashboard.channelLoading} />
+              <ChannelChart
+                data={dashboard.channelResponse?.data ?? []}
+                range={dashboard.channelRange}
+                onRangeChange={dashboard.handleChannelRangeChange}
+                loading={dashboard.channelLoading}
+              />
             </Box>
           </Grid>
         </Grid>

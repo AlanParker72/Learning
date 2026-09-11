@@ -98,7 +98,8 @@ export const mapDeliveryItem = (raw: DeliveryApiItem | Record<string, unknown>, 
     failureReason: asString(record.failureReason) || null,
     retryCount: asNumber(record.retryCount, 0),
     manualRetryAllowed: asBoolean(record.manualRetryAllowed, true),
-    inputAvailable: asBoolean(record.inputAvailable, true),
+    // Undefined/false → no Input link in the Doc link column.
+    inputAvailable: asBoolean(record.inputAvailable, false),
     comments: commentsRaw.map((comment, commentIndex) =>
       mapDeliveryComment(comment as DeliveryCommentApi, commentIndex)
     ),

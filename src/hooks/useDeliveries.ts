@@ -106,6 +106,11 @@ export function useDeliveries(range: DashboardRangeUi) {
     void loadRows(appliedFilters, page, pageSize, sortField, sortDir)
   }, [appliedFilters, loadRows, page, pageSize, sortDir, sortField])
 
+  // Header dashboard range change → refresh deliveries for the new window.
+  useEffect(() => {
+    setPage(1)
+  }, [range])
+
   useEffect(() => {
     setPage((current) => Math.min(current, pageCount))
   }, [pageCount])

@@ -1,63 +1,37 @@
-import { Box, CircularProgress, FormControl, IconButton, MenuItem, Paper, Select, Stack, Tooltip as MuiTooltip, Typography } from '@mui/material'
+import { Box, Button, CircularProgress, IconButton, Paper, Stack, Tooltip as MuiTooltip, Typography } from '@mui/material'
 import { InfoOutlined } from '@mui/icons-material'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { useMemo, useState } from 'react'
 import type { DashboardChannelPoint } from '../../api/dashboardStatusApi'
+import type { DashboardRangeUi } from '../../api/contracts'
 import { brand } from '../../theme/brand'
 import { formatChartTick } from '../../utils/format'
 
 type ChannelChartProps = {
   data: DashboardChannelPoint[]
+  range: DashboardRangeUi
+  onRangeChange: (value: DashboardRangeUi) => void
   loading?: boolean
 }
 
-type GroupBy = 'day' | 'week'
+const RANGE_TOGGLES: Array<{ label: string; value: DashboardRangeUi }> = [
+  { label: '1W', value: 'ONE_WEEK' },
+  { label: '2W', value: 'TWO_WEEKS' },
+  { label: '1M', value: 'THIRTY_DAYS' }
+]
 
 const SERIES = [
-  { key: 'marketToEmail', label: 'Marketplace Email', color: brand.chart.marketToEmail, dashed: false },
-  { key: 'smtp', label: 'SMTP', color: brand.chart.smtp, dashed: true },
-  { key: 'push', label: 'Push', color: brand.chart.push, dashed: false }
+  { key: 'marketToEmail', label: 'Marketplace Email', color: brand.chart.marketToEmail },
+  { key: 'smtp', label: 'SMTP', color: brand.chart.smtp },
+  { key: 'push', label: 'Push', color: brand.chart.push }
 ] as const
 
-const weekKey = (isoDate: string): string => {
-  const date = new Date(`${isoDate}T00:00:00`)
-  const start = new Date(date)
-  start.setDate(date.getDate() - date.getDay())
-  return start.toISOString().slice(0, 10)
-}
-
-export default function ChannelChart({ data, loading = false }: ChannelChartProps) {
-  const [groupBy, setGroupBy] = useState<GroupBy>('day')
-
-  const chartData = useMemo(() => {
-    if (groupBy === 'day') {
-      return data.map((item) => ({
-        date: formatChartTick(item.date),
-        marketToEmail: item.marketToEmail,
-        smtp: item.smtp,
-        push: item.push
-      }))
-    }
-
-    const grouped = new Map<string, { marketToEmail: number; smtp: number; push: number; count: number }>()
-    data.forEach((item) => {
-      const key = weekKey(item.date)
-      const current = grouped.get(key) ?? { marketToEmail: 0, smtp: 0, push: 0, count: 0 }
-      grouped.set(key, {
-        marketToEmail: current.marketToEmail + item.marketToEmail,
-        smtp: current.smtp + item.smtp,
-        push: current.push + item.push,
-        count: current.count + 1
-      })
-    })
-
-    return Array.from(grouped.entries()).map(([date, values]) => ({
-      date: `Week of ${formatChartTick(date)}`,
-      marketToEmail: Math.round(values.marketToEmail / values.count),
-      smtp: Math.round(values.smtp / values.count),
-      push: Math.round(values.push / values.count)
-    }))
-  }, [data, groupBy])
+export default function ChannelChart({ data, range, onRangeChange, loading = false }: ChannelChartProps) {
+  const chartData = data.map((item) => ({
+    date: formatChartTick(item.date),
+    marketToEmail: item.marketToEmail,
+    smtp: item.smtp,
+    push: item.push
+  }))
 
   return (
     <Paper
@@ -73,25 +47,39 @@ export default function ChannelChart({ data, loading = false }: ChannelChartProp
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2, gap: 1.5 }}>
         <Stack direction="row" spacing={0.5} alignItems="center">
           <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 18 }}>Delivery Channel Trend</Typography>
-          <MuiTooltip title="Average delivery volume by channel">
+          <MuiTooltip title="Daily delivery volume by channel">
             <IconButton size="small" aria-label="About channel trend chart" sx={{ color: brand.muted }}>
               <InfoOutlined sx={{ fontSize: 16 }} />
             </IconButton>
           </MuiTooltip>
         </Stack>
 
-        <FormControl size="small" sx={{ minWidth: 148 }}>
-          <Select
-            value={groupBy}
-            onChange={(event) => setGroupBy(event.target.value as GroupBy)}
-            sx={{ borderRadius: 2, fontWeight: 600, fontSize: 13 }}
-            renderValue={(value) => `Group by: ${value === 'day' ? 'Day' : 'Week'}`}
-            inputProps={{ 'aria-label': 'Group channel trend by day or week' }}
-          >
-            <MenuItem value="day">Day</MenuItem>
-            <MenuItem value="week">Week</MenuItem>
-          </Select>
-        </FormControl>
+        <Box sx={{ display: 'flex', gap: 0.5, borderRadius: 999, p: 0.4, background: brand.surfaceLight, border: `1px solid ${brand.border}` }}>
+          {RANGE_TOGGLES.map((option) => {
+            const active = range === option.value
+            return (
+              <Button
+                key={option.value}
+                size="small"
+                onClick={() => onRangeChange(option.value)}
+                aria-pressed={active}
+                aria-label={`Show ${option.label} channel trend`}
+                sx={{
+                  minWidth: 42,
+                  px: 1.25,
+                  py: 0.4,
+                  borderRadius: 999,
+                  background: active ? brand.link : 'transparent',
+                  color: active ? '#fff' : brand.textMuted,
+                  fontWeight: 800,
+                  '&:hover': { background: active ? brand.linkHover : brand.hoverLight }
+                }}
+              >
+                {option.label}
+              </Button>
+            )
+          })}
+        </Box>
       </Stack>
 
       <Box sx={{ width: '100%', height: 280 }}>
@@ -113,7 +101,6 @@ export default function ChannelChart({ data, loading = false }: ChannelChartProp
                 name={series.label}
                 stroke={series.color}
                 strokeWidth={2.5}
-                strokeDasharray={series.dashed ? '6 6' : undefined}
                 dot={{ r: 3.5, strokeWidth: 2, fill: '#fff' }}
                 activeDot={{ r: 5 }}
               />

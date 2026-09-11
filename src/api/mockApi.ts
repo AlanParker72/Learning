@@ -238,6 +238,7 @@ export async function fetchDeliveries(params: FetchParams = {}): Promise<FetchRe
       status: selectedStatuses.join(','),
       channel: channel ?? '',
       customerId: customerId ?? '',
+      range,
       tableRange: tableRange ?? '',
       sortField,
       sortDir,

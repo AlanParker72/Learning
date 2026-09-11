@@ -27,10 +27,8 @@ const SERIES = [
 ] as const
 
 export default function StatusChart({ data, range, onRangeChange, loading = false }: StatusChartProps) {
-  const visibleData =
-    range === 'ONE_WEEK' ? data.slice(-7) : range === 'TWO_WEEKS' ? data.slice(-14) : data.slice(-30)
-
-  const chartData = visibleData.map((item) => ({
+  // Data already matches the selected range from the status API.
+  const chartData = data.map((item) => ({
     date: formatChartTick(item.date),
     sent: item.sent,
     queued: item.queued,

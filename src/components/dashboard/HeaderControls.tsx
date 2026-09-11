@@ -44,10 +44,10 @@ export default function HeaderControls({
                 py: 0.75,
                 minWidth: 88,
                 borderRadius: 0,
-                background: active ? '#2563eb' : brand.surface,
+                background: active ? brand.link : brand.surface,
                 color: active ? '#fff' : brand.headerText,
                 fontWeight: 700,
-                '&:hover': { background: active ? '#1d4ed8' : brand.hoverLight }
+                '&:hover': { background: active ? brand.linkHover : brand.hoverLight }
               }}
             >
               {option.label}

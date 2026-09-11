@@ -1,4 +1,17 @@
-import { Box, Button, Checkbox, FormControl, InputAdornment, InputLabel, ListItemText, MenuItem, Select, Stack, TextField } from '@mui/material'
+import {
+  Box,
+  Button,
+  Checkbox,
+  FormControl,
+  InputAdornment,
+  InputLabel,
+  ListItemText,
+  MenuItem,
+  Select,
+  Stack,
+  TextField,
+  Tooltip
+} from '@mui/material'
 import { ReplayOutlined, SearchOutlined } from '@mui/icons-material'
 import type { DeliveryFilters } from '../../hooks/useDeliveries'
 import type { SearchField } from '../../api/mockApi'
@@ -23,17 +36,64 @@ const STATUS_OPTIONS = ['Sent / Re-Sent', 'Queued', 'Failed', 'Acknowledged']
 const CHANNEL_OPTIONS = ['Marketplace Email', 'SMTP', 'Push']
 const RANGE_OPTIONS = ['Last 1 hour', 'Last 12 hours', 'Last 24 hours', 'Last 7 days']
 
-const fieldSx = {
+const compactFieldSx = {
+  minWidth: 128,
+  maxWidth: 148,
+  '& .MuiOutlinedInput-root': { borderRadius: 1.5, background: brand.surface }
+}
+
+const statusFieldSx = {
   minWidth: 150,
-  '& .MuiOutlinedInput-root': { borderRadius: 2, background: brand.surface }
+  maxWidth: 168,
+  '& .MuiOutlinedInput-root': { borderRadius: 1.5, background: brand.surface }
+}
+
+const selectFieldSx = {
+  minWidth: 132,
+  maxWidth: 148,
+  '& .MuiOutlinedInput-root': { borderRadius: 1.5, background: brand.surface }
+}
+
+function SelectedValuesLabel({ selected }: { selected: string[] }) {
+  if (selected.length === 0) {
+    return (
+      <Box component="span" sx={{ color: brand.textMuted }}>
+        All
+      </Box>
+    )
+  }
+
+  const label = selected.join(', ')
+  return (
+    <Tooltip title={label} enterDelay={350} placement="top">
+      <Box
+        component="span"
+        sx={{
+          display: 'block',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          maxWidth: '100%',
+          fontWeight: 600
+        }}
+      >
+        {label}
+      </Box>
+    </Tooltip>
+  )
 }
 
 export default function DeliveryFiltersBar({ filters, onChange, onSearch, onReset }: DeliveryFiltersBarProps) {
   const searchByLabel = SEARCH_BY_OPTIONS.find((option) => option.value === filters.searchBy)?.label ?? 'Customer ID'
 
   return (
-    <Stack direction={{ xs: 'column', lg: 'row' }} spacing={1.5} alignItems={{ lg: 'flex-end' }} sx={{ mb: 2, flexWrap: 'wrap' }}>
-      <FormControl size="small" sx={fieldSx}>
+    <Stack
+      direction={{ xs: 'column', lg: 'row' }}
+      spacing={1}
+      alignItems={{ lg: 'flex-end' }}
+      sx={{ mb: 1.75, flexWrap: 'wrap', gap: 1 }}
+    >
+      <FormControl size="small" sx={compactFieldSx}>
         <InputLabel>Search By</InputLabel>
         <Select
           label="Search By"
@@ -49,13 +109,18 @@ export default function DeliveryFiltersBar({ filters, onChange, onSearch, onRese
       <TextField
         size="small"
         label={searchByLabel}
-        placeholder={`Search by ${searchByLabel}...`}
+        placeholder={`${searchByLabel}…`}
         value={filters.search}
         onChange={(event) => onChange({ ...filters, search: event.target.value })}
         onKeyDown={(event) => {
           if (event.key === 'Enter') onSearch()
         }}
-        sx={{ minWidth: 220, flex: { lg: '1 1 220px' }, '& .MuiOutlinedInput-root': { borderRadius: 2, background: brand.surface } }}
+        sx={{
+          width: { xs: '100%', lg: 168 },
+          minWidth: 140,
+          maxWidth: 180,
+          '& .MuiOutlinedInput-root': { borderRadius: 1.5, background: brand.surface }
+        }}
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
@@ -65,17 +130,25 @@ export default function DeliveryFiltersBar({ filters, onChange, onSearch, onRese
         }}
       />
 
-      <FormControl size="small" sx={{ ...fieldSx, minWidth: 180 }}>
+      <FormControl size="small" sx={statusFieldSx}>
         <InputLabel shrink>Delivery Status</InputLabel>
         <Select
           multiple
           displayEmpty
           label="Delivery Status"
           value={filters.status}
-          renderValue={(selected) => (selected.length > 0 ? selected.join(', ') : 'All')}
+          renderValue={(selected) => <SelectedValuesLabel selected={selected} />}
           onChange={(event) => {
             const value = event.target.value
             onChange({ ...filters, status: typeof value === 'string' ? value.split(',') : value })
+          }}
+          sx={{
+            '& .MuiSelect-select': {
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              pr: 3
+            }
           }}
         >
           {STATUS_OPTIONS.map((option) => (
@@ -87,10 +160,10 @@ export default function DeliveryFiltersBar({ filters, onChange, onSearch, onRese
         </Select>
       </FormControl>
 
-      <FormControl size="small" sx={fieldSx}>
-        <InputLabel>Delivery Channel</InputLabel>
+      <FormControl size="small" sx={selectFieldSx}>
+        <InputLabel>Channel</InputLabel>
         <Select
-          label="Delivery Channel"
+          label="Channel"
           value={filters.channel}
           onChange={(event) => onChange({ ...filters, channel: event.target.value })}
         >
@@ -101,7 +174,7 @@ export default function DeliveryFiltersBar({ filters, onChange, onSearch, onRese
         </Select>
       </FormControl>
 
-      <FormControl size="small" sx={fieldSx}>
+      <FormControl size="small" sx={selectFieldSx}>
         <InputLabel>Range</InputLabel>
         <Select
           label="Range"
@@ -114,18 +187,18 @@ export default function DeliveryFiltersBar({ filters, onChange, onSearch, onRese
         </Select>
       </FormControl>
 
-      <Box sx={{ display: 'flex', gap: 1, ml: { lg: 'auto' } }}>
+      <Box sx={{ display: 'flex', gap: 0.75, ml: { lg: 'auto' } }}>
         <Button
           variant="contained"
           onClick={onSearch}
           aria-label="Search deliveries"
           sx={{
-            minWidth: 44,
-            width: 44,
-            height: 40,
+            minWidth: 40,
+            width: 40,
+            height: 36,
             background: brand.link,
             '&:hover': { background: brand.linkHover },
-            borderRadius: 2
+            borderRadius: 1.5
           }}
         >
           <SearchOutlined fontSize="small" />
@@ -135,11 +208,11 @@ export default function DeliveryFiltersBar({ filters, onChange, onSearch, onRese
           onClick={onReset}
           startIcon={<ReplayOutlined fontSize="small" />}
           sx={{
-            height: 40,
+            height: 36,
             color: brand.textMuted,
             borderColor: brand.border,
-            borderRadius: 2,
-            px: 1.5,
+            borderRadius: 1.5,
+            px: 1.25,
             fontWeight: 600
           }}
         >

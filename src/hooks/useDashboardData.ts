@@ -42,6 +42,7 @@ export const getRangeDates = (range: DashboardRangeUi) => {
   return { fromIso: formatISODate(from), toIso: formatISODate(to), from, to }
 }
 
+/** Sum daily status counts across the selected range for KPI totals. */
 const summarizeMetric = (rows: DashboardStatusPoint[], key: MetricKey, range: DashboardRangeUi): MetricSummary => {
   const sparkline = rows.map((row) => row[key])
   const value = sparkline.reduce((sum, item) => sum + item, 0)
@@ -64,6 +65,7 @@ const summarizeMetric = (rows: DashboardStatusPoint[], key: MetricKey, range: Da
 export function useDashboardData(initialRange: DashboardRangeUi = 'ONE_WEEK') {
   const [headerRange, setHeaderRange] = useState<DashboardRangeUi>(initialRange)
   const [statusRange, setStatusRange] = useState<DashboardRangeUi>(initialRange)
+  const [channelRange, setChannelRange] = useState<DashboardRangeUi>(initialRange)
   const [metricsResponse, setMetricsResponse] = useState<DashboardStatusResponse | null>(null)
   const [statusResponse, setStatusResponse] = useState<DashboardStatusResponse | null>(null)
   const [channelResponse, setChannelResponse] = useState<DashboardChannelResponse | null>(null)
@@ -118,25 +120,38 @@ export function useDashboardData(initialRange: DashboardRangeUi = 'ONE_WEEK') {
     }
   }, [])
 
+  /** Top header 1W / 2W: refresh KPIs, both charts, and (via prop) deliveries list. */
   const handleHeaderRangeChange = useCallback((range: DashboardRangeUi) => {
     setHeaderRange(range)
     setStatusRange(range)
+    setChannelRange(range)
+  }, [])
+
+  const handleStatusRangeChange = useCallback((range: DashboardRangeUi) => {
+    setStatusRange(range)
+  }, [])
+
+  const handleChannelRangeChange = useCallback((range: DashboardRangeUi) => {
+    setChannelRange(range)
   }, [])
 
   const reload = useCallback(() => {
     void loadMetrics(headerRange)
     void loadStatus(statusRange)
-    void loadChannel(headerRange)
-  }, [headerRange, loadChannel, loadMetrics, loadStatus, statusRange])
+    void loadChannel(channelRange)
+  }, [channelRange, headerRange, loadChannel, loadMetrics, loadStatus, statusRange])
 
   useEffect(() => {
     void loadMetrics(headerRange)
-    void loadChannel(headerRange)
-  }, [headerRange, loadChannel, loadMetrics])
+  }, [headerRange, loadMetrics])
 
   useEffect(() => {
     void loadStatus(statusRange)
   }, [loadStatus, statusRange])
+
+  useEffect(() => {
+    void loadChannel(channelRange)
+  }, [channelRange, loadChannel])
 
   const rangeWindow = useMemo(() => getRangeDates(headerRange), [headerRange])
 
@@ -151,8 +166,10 @@ export function useDashboardData(initialRange: DashboardRangeUi = 'ONE_WEEK') {
   return {
     headerRange,
     statusRange,
-    setStatusRange,
+    channelRange,
     handleHeaderRangeChange,
+    handleStatusRangeChange,
+    handleChannelRangeChange,
     statusResponse,
     channelResponse,
     metricsLoading,

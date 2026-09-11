@@ -30,6 +30,7 @@ import {
 import { brand } from '../../theme/brand'
 import { splitDateTime } from '../../utils/format'
 import { useDeliveries } from '../../hooks/useDeliveries'
+import { useCurrentUserRoles } from '../../hooks/useCurrentUserRoles'
 import DeliveryFiltersBar from './DeliveryFiltersBar'
 import DeliveryPagination from './DeliveryPagination'
 import DeliveryStatusChip from './DeliveryStatusChip'
@@ -71,6 +72,7 @@ const nowLabel = (): string => {
 export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: DashboardRangeUi }) {
   const { enqueueSnackbar } = useSnackbar()
   const deliveries = useDeliveries(range)
+  const { allowedActions, hasAnyAction } = useCurrentUserRoles()
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   const [selectedRow, setSelectedRow] = useState<Delivery | null>(null)
   const [pendingAction, setPendingAction] = useState<DeliveryActionType | null>(null)
@@ -286,9 +288,11 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
                         >
                           <ChatBubbleOutline fontSize="small" />
                         </IconButton>
-                        <IconButton size="small" onClick={(event) => openMenu(event, row)} aria-label={`Actions for ${row.referenceId}`}>
-                          <MoreVert fontSize="small" />
-                        </IconButton>
+                        {hasAnyAction && (
+                          <IconButton size="small" onClick={(event) => openMenu(event, row)} aria-label={`Actions for ${row.referenceId}`}>
+                            <MoreVert fontSize="small" />
+                          </IconButton>
+                        )}
                       </Stack>
                     </TableCell>
                   </TableRow>
@@ -314,6 +318,7 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
 
       <RowActionsMenu
         anchorEl={menuAnchor}
+        allowedActions={allowedActions}
         onClose={() => setMenuAnchor(null)}
         onAction={(action) => {
           if (!selectedRow) return
