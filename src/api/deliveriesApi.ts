@@ -123,11 +123,13 @@ export async function fetchDeliveries(params: FetchParams = {}): Promise<FetchRe
     return mapDeliveriesResponse(raw)
   }
 
+  const channelParam = channel && channel !== 'all' ? channel : undefined
+
   const raw = await apiGet<DeliveriesListResponseApi>('/alerts-admin/v1/deliveries', {
     search: search ?? '',
     searchBy,
     status: selectedStatuses.join(','),
-    channel: channel ?? '',
+    channel: channelParam,
     range,
     sortField,
     sortDir,

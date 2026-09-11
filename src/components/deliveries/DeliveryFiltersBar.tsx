@@ -48,8 +48,8 @@ const statusFieldSx = {
 }
 
 const selectFieldSx = {
-  minWidth: 140,
-  maxWidth: 160,
+  minWidth: 160,
+  maxWidth: 190,
   '& .MuiOutlinedInput-root': { borderRadius: 1.5, background: brand.surface }
 }
 
@@ -170,9 +170,9 @@ export default function DeliveryFiltersBar({ filters, onChange, onSearch, onRese
         </FormControl>
 
         <FormControl size="small" sx={selectFieldSx}>
-          <InputLabel>Channel</InputLabel>
+          <InputLabel>Delivery Channel</InputLabel>
           <Select
-            label="Channel"
+            label="Delivery Channel"
             value={filters.channel}
             onChange={(event) => onChange({ ...filters, channel: event.target.value })}
           >

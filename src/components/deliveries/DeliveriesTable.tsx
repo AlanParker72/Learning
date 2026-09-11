@@ -48,6 +48,7 @@ const COLUMNS = [
   'Account ID',
   'Tenant ID',
   'Source',
+  'Delivery Channel',
   'Date & Time',
   'Delivery Status',
   'Doc link'
@@ -264,6 +265,7 @@ export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: Dashb
                     <TableCell>{row.accountId ?? '—'}</TableCell>
                     <TableCell>{row.tenantId}</TableCell>
                     <TableCell>{row.source}</TableCell>
+                    <TableCell>{row.deliveryChannel || '—'}</TableCell>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>{dateTime.date}</Typography>
                       <Typography variant="caption" color="text.secondary">{dateTime.time}</Typography>
