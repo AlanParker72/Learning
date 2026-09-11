@@ -15,10 +15,11 @@ import {
   UnfoldMoreOutlined
 } from '@mui/icons-material'
 import { useEffect, useState } from 'react'
-import { JsonView, allExpanded, defaultStyles } from 'react-json-view-lite'
+import { JsonView, allExpanded } from 'react-json-view-lite'
 import 'react-json-view-lite/dist/index.css'
 import { brand } from '../../theme/brand'
 import { copyToClipboard } from '../../utils/clipboard'
+import { payloadJsonStyles } from './payloadJsonViewerStyles'
 
 type PayloadDrawerProps = {
   open: boolean
@@ -31,6 +32,29 @@ type PayloadDrawerProps = {
 }
 
 const collapseAll = (): boolean => false
+
+const toolbarButtonSx = {
+  minHeight: 30,
+  px: 1.25,
+  borderRadius: '8px',
+  borderColor: brand.border,
+  color: brand.headerText,
+  backgroundColor: brand.surface,
+  fontWeight: 700,
+  fontSize: 12.5,
+  boxShadow: 'none',
+  textTransform: 'none' as const,
+  '&:hover': {
+    borderColor: brand.primaryLight,
+    backgroundColor: brand.primaryLight,
+    color: brand.primary
+  },
+  '&.Mui-disabled': {
+    borderColor: brand.border,
+    color: brand.muted,
+    backgroundColor: brand.surfaceLight
+  }
+}
 
 export default function PayloadDrawer({
   open,
@@ -72,15 +96,22 @@ export default function PayloadDrawer({
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: '100%', sm: 560 } } }}>
-      <Box sx={{ p: 2.5, height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ p: 2.5, height: '100%', display: 'flex', flexDirection: 'column', background: brand.surface }}>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1.5 }}>
           <Box>
-            <Typography variant="h6" sx={{ fontWeight: 800 }}>Input payload</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 800, color: brand.text }}>Input payload</Typography>
             {referenceLabel && (
-              <Typography variant="body2" color="text.secondary">{referenceLabel}</Typography>
+              <Typography variant="body2" sx={{ color: brand.textMuted, mt: 0.25 }}>{referenceLabel}</Typography>
             )}
           </Box>
-          <IconButton onClick={onClose} aria-label="Close payload details">
+          <IconButton
+            onClick={onClose}
+            aria-label="Close payload details"
+            sx={{
+              color: brand.muted,
+              '&:hover': { backgroundColor: brand.hoverLight, color: brand.text }
+            }}
+          >
             <Close />
           </IconButton>
         </Stack>
@@ -94,39 +125,51 @@ export default function PayloadDrawer({
           <Button
             size="small"
             variant="outlined"
-            startIcon={<UnfoldMoreOutlined fontSize="small" />}
+            startIcon={<UnfoldMoreOutlined sx={{ fontSize: 16 }} />}
             onClick={handleExpandAll}
             disabled={!payload || loading}
-            sx={{ borderColor: brand.border, color: brand.textMuted, fontWeight: 700 }}
+            sx={toolbarButtonSx}
           >
             Expand all
           </Button>
           <Button
             size="small"
             variant="outlined"
-            startIcon={<UnfoldLessOutlined fontSize="small" />}
+            startIcon={<UnfoldLessOutlined sx={{ fontSize: 16 }} />}
             onClick={handleCollapseAll}
             disabled={!payload || loading}
-            sx={{ borderColor: brand.border, color: brand.textMuted, fontWeight: 700 }}
+            sx={toolbarButtonSx}
           >
             Collapse all
           </Button>
           <Button
             size="small"
-            startIcon={<ContentCopyOutlined fontSize="small" />}
+            variant="outlined"
+            startIcon={<ContentCopyOutlined sx={{ fontSize: 16 }} />}
             onClick={handleCopy}
             disabled={!payload || loading}
-            sx={{ color: brand.link, fontWeight: 700, ml: { sm: 'auto' } }}
+            sx={{
+              ...toolbarButtonSx,
+              ml: { sm: 'auto' },
+              borderColor: copied ? brand.link : brand.border,
+              color: copied ? brand.linkHover : brand.link,
+              backgroundColor: copied ? brand.overlay.linkSoft : brand.surface,
+              '&:hover': {
+                borderColor: brand.link,
+                backgroundColor: brand.overlay.linkSoft,
+                color: brand.linkHover
+              }
+            }}
           >
             {copied ? 'Copied' : 'Copy JSON'}
           </Button>
         </Stack>
 
-        <Divider sx={{ mb: 2 }} />
+        <Divider sx={{ mb: 2, borderColor: brand.border }} />
 
         <Box sx={{ overflow: 'auto', pr: 0.5, flex: 1 }}>
           {loading && (
-            <Typography variant="body2" color="text.secondary">Loading payload details...</Typography>
+            <Typography variant="body2" sx={{ color: brand.textMuted }}>Loading payload details...</Typography>
           )}
 
           {!loading && error && (
@@ -140,24 +183,28 @@ export default function PayloadDrawer({
           )}
 
           {!loading && !error && !payload && (
-            <Typography variant="body2" color="text.secondary">No payload is available for this delivery.</Typography>
+            <Typography variant="body2" sx={{ color: brand.textMuted }}>No payload is available for this delivery.</Typography>
           )}
 
           {!loading && !error && payload && (
             <Box
               sx={{
-                p: 1.5,
-                borderRadius: 2,
+                p: 2,
+                borderRadius: '12px',
                 border: `1px solid ${brand.border}`,
                 background: brand.surfaceLight,
-                '& .json-view-lite': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', fontSize: 13 }
+                boxShadow: brand.shadow.insetBorderSubtle,
+                '& .payload-json': {
+                  margin: 0
+                }
               }}
             >
               <JsonView
                 key={viewKey}
                 data={payload}
                 shouldExpandNode={expandAll ? allExpanded : collapseAll}
-                style={defaultStyles}
+                style={payloadJsonStyles}
+                clickToExpandNode
               />
             </Box>
           )}
