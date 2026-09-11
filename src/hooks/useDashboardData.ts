@@ -6,7 +6,7 @@ import {
   type DashboardStatusResponse,
   type DashboardChannelResponse
 } from '../api/dashboardStatusApi'
-import { previousPeriodLabel, type DashboardRangeUi } from '../api/contracts'
+import type { DashboardRangeUi } from '../api/contracts'
 import { formatISODate } from '../utils/format'
 
 export type MetricKey = 'sent' | 'queued' | 'failed' | 'acknowledged'
@@ -15,10 +15,6 @@ export type MetricSummary = {
   key: MetricKey
   label: string
   value: number
-  delta: number
-  positive: boolean
-  sparkline: number[]
-  comparisonLabel: string
 }
 
 const METRIC_LABELS: Record<MetricKey, string> = {
@@ -42,25 +38,12 @@ export const getRangeDates = (range: DashboardRangeUi) => {
   return { fromIso: formatISODate(from), toIso: formatISODate(to), from, to }
 }
 
-/** Sum daily status counts across the selected range for KPI totals. */
-const summarizeMetric = (rows: DashboardStatusPoint[], key: MetricKey, range: DashboardRangeUi): MetricSummary => {
-  const sparkline = rows.map((row) => row[key])
-  const value = sparkline.reduce((sum, item) => sum + item, 0)
-  const midpoint = Math.max(1, Math.floor(sparkline.length / 2))
-  const previous = sparkline.slice(0, midpoint).reduce((sum, item) => sum + item, 0)
-  const current = sparkline.slice(midpoint).reduce((sum, item) => sum + item, 0)
-  const delta = previous === 0 ? 0 : ((current - previous) / previous) * 100
-
-  return {
-    key,
-    label: METRIC_LABELS[key],
-    value,
-    delta,
-    positive: key === 'failed' ? delta <= 0 : delta >= 0,
-    sparkline,
-    comparisonLabel: previousPeriodLabel(range)
-  }
-}
+/** Sum daily status counts across the selected range for KPI totals (no period-over-period). */
+const summarizeMetric = (rows: DashboardStatusPoint[], key: MetricKey): MetricSummary => ({
+  key,
+  label: METRIC_LABELS[key],
+  value: rows.reduce((sum, row) => sum + row[key], 0)
+})
 
 export function useDashboardData(initialRange: DashboardRangeUi = 'ONE_WEEK') {
   const [headerRange, setHeaderRange] = useState<DashboardRangeUi>(initialRange)
@@ -159,9 +142,9 @@ export function useDashboardData(initialRange: DashboardRangeUi = 'ONE_WEEK') {
     const rows = metricsResponse?.data ?? []
     if (rows.length === 0) return []
     return (['sent', 'queued', 'failed', 'acknowledged'] as MetricKey[]).map((key) =>
-      summarizeMetric(rows, key, headerRange)
+      summarizeMetric(rows, key)
     )
-  }, [headerRange, metricsResponse])
+  }, [metricsResponse])
 
   return {
     headerRange,

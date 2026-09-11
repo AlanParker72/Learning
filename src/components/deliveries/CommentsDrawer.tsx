@@ -9,7 +9,7 @@ import {
   Typography
 } from '@mui/material'
 import { Close } from '@mui/icons-material'
-import type { DeliveryComment } from '../../api/mockApi'
+import type { DeliveryComment } from '../../api/deliveriesApi'
 import { brand } from '../../theme/brand'
 import { initialsFromName, splitDateTime } from '../../utils/format'
 

@@ -3,12 +3,6 @@ const DATE_INPUT_PATTERN = /^(\d{4})[/-](\d{1,2})[/-](\d{1,2})(?:[ T](\d{1,2}):(
 export const formatNumber = (value: number): string =>
   value.toLocaleString('en-US')
 
-export const formatPercent = (value: number, digits = 1): string => {
-  const abs = Math.abs(value).toFixed(digits)
-  const sign = value > 0 ? '+' : value < 0 ? '−' : ''
-  return `${sign}${abs}%`
-}
-
 export const formatISODate = (date: Date): string => date.toISOString().slice(0, 10)
 
 export const formatDisplayDate = (date: Date): string =>

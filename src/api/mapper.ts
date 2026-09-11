@@ -1,5 +1,5 @@
 import {
-  normalizeDashboardRange,
+  toDashboardRange,
   type DashboardChannelPointApi,
   type DashboardChannelResponseApi,
   type DashboardStatusPointApi,
@@ -16,7 +16,7 @@ import type {
   DeliveryRecipients,
   DeliveryStatus,
   FetchResult
-} from './mockApi'
+} from './deliveriesApi'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
@@ -90,7 +90,6 @@ export const mapDeliveryItem = (raw: DeliveryApiItem | Record<string, unknown>, 
     accountId: asString(record.accountId),
     tenant: asString(record.tenant),
     source: asString(record.source),
-    // API field is `function` — keep on the UI model without colliding with JS reserved word usage sites.
     functionName: asString(record.function ?? record.functionName),
     deliveryDateTime: asString(record.deliveryDateTime ?? record.dateTime),
     deliveryStatus: mapDeliveryStatus(record.deliveryStatus),
@@ -98,7 +97,6 @@ export const mapDeliveryItem = (raw: DeliveryApiItem | Record<string, unknown>, 
     failureReason: asString(record.failureReason) || null,
     retryCount: asNumber(record.retryCount, 0),
     manualRetryAllowed: asBoolean(record.manualRetryAllowed, true),
-    // Undefined/false → no Input link in the Doc link column.
     inputAvailable: asBoolean(record.inputAvailable, false),
     comments: commentsRaw.map((comment, commentIndex) =>
       mapDeliveryComment(comment as DeliveryCommentApi, commentIndex)
@@ -143,7 +141,7 @@ export function mapDashboardStatusResponse(raw: unknown): DashboardStatusRespons
   if (!isRecord(raw) || !Array.isArray(raw.data)) return null
   const response = raw as DashboardStatusResponseApi
   return {
-    range: normalizeDashboardRange(response.range),
+    range: toDashboardRange(response.range),
     fromDate: asString(response.fromDate),
     toDate: asString(response.toDate),
     data: response.data.map(mapStatusPoint).filter((point): point is DashboardStatusPointApi => point !== null)
@@ -154,7 +152,7 @@ export function mapDashboardChannelResponse(raw: unknown): DashboardChannelRespo
   if (!isRecord(raw) || !Array.isArray(raw.data)) return null
   const response = raw as DashboardChannelResponseApi
   return {
-    range: normalizeDashboardRange(response.range),
+    range: toDashboardRange(response.range),
     fromDate: asString(response.fromDate),
     toDate: asString(response.toDate),
     data: response.data.map(mapChannelPoint).filter((point): point is DashboardChannelPointApi => point !== null)

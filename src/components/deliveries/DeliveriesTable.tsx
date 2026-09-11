@@ -26,7 +26,7 @@ import {
   type DeliveryActionType,
   type DeliveryComment,
   type DeliveryRecipients
-} from '../../api/mockApi'
+} from '../../api/deliveriesApi'
 import { brand } from '../../theme/brand'
 import { splitDateTime } from '../../utils/format'
 import { useDeliveries } from '../../hooks/useDeliveries'

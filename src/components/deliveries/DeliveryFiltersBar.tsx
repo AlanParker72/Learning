@@ -14,7 +14,7 @@ import {
 } from '@mui/material'
 import { ReplayOutlined, SearchOutlined } from '@mui/icons-material'
 import type { DeliveryFilters } from '../../hooks/useDeliveries'
-import type { SearchField } from '../../api/mockApi'
+import type { SearchField } from '../../api/deliveriesApi'
 import { brand } from '../../theme/brand'
 
 type DeliveryFiltersBarProps = {
@@ -37,20 +37,20 @@ const CHANNEL_OPTIONS = ['Marketplace Email', 'SMTP', 'Push']
 const RANGE_OPTIONS = ['Last 1 hour', 'Last 12 hours', 'Last 24 hours', 'Last 7 days']
 
 const compactFieldSx = {
-  minWidth: 128,
-  maxWidth: 148,
+  minWidth: 148,
+  maxWidth: 172,
   '& .MuiOutlinedInput-root': { borderRadius: 1.5, background: brand.surface }
 }
 
 const statusFieldSx = {
-  minWidth: 150,
-  maxWidth: 168,
+  minWidth: 158,
+  maxWidth: 180,
   '& .MuiOutlinedInput-root': { borderRadius: 1.5, background: brand.surface }
 }
 
 const selectFieldSx = {
-  minWidth: 132,
-  maxWidth: 148,
+  minWidth: 140,
+  maxWidth: 160,
   '& .MuiOutlinedInput-root': { borderRadius: 1.5, background: brand.surface }
 }
 
@@ -91,103 +91,118 @@ export default function DeliveryFiltersBar({ filters, onChange, onSearch, onRese
       direction={{ xs: 'column', lg: 'row' }}
       spacing={1}
       alignItems={{ lg: 'flex-end' }}
-      sx={{ mb: 1.75, flexWrap: 'wrap', gap: 1 }}
+      sx={{ mb: 1.75, width: '100%', gap: 1 }}
     >
-      <FormControl size="small" sx={compactFieldSx}>
-        <InputLabel>Search By</InputLabel>
-        <Select
-          label="Search By"
-          value={filters.searchBy}
-          onChange={(event) => onChange({ ...filters, searchBy: event.target.value as SearchField, search: '' })}
-        >
-          {SEARCH_BY_OPTIONS.map((option) => (
-            <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="flex-end"
+        sx={{ flex: 1, minWidth: 0, flexWrap: 'wrap', gap: 1 }}
+      >
+        <FormControl size="small" sx={compactFieldSx}>
+          <InputLabel>Search By</InputLabel>
+          <Select
+            label="Search By"
+            value={filters.searchBy}
+            onChange={(event) => onChange({ ...filters, searchBy: event.target.value as SearchField, search: '' })}
+          >
+            {SEARCH_BY_OPTIONS.map((option) => (
+              <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-      <TextField
-        size="small"
-        label={searchByLabel}
-        placeholder={`${searchByLabel}…`}
-        value={filters.search}
-        onChange={(event) => onChange({ ...filters, search: event.target.value })}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') onSearch()
-        }}
-        sx={{
-          width: { xs: '100%', lg: 168 },
-          minWidth: 140,
-          maxWidth: 180,
-          '& .MuiOutlinedInput-root': { borderRadius: 1.5, background: brand.surface }
-        }}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchOutlined fontSize="small" sx={{ color: brand.muted }} />
-            </InputAdornment>
-          )
-        }}
-      />
-
-      <FormControl size="small" sx={statusFieldSx}>
-        <InputLabel shrink>Delivery Status</InputLabel>
-        <Select
-          multiple
-          displayEmpty
-          label="Delivery Status"
-          value={filters.status}
-          renderValue={(selected) => <SelectedValuesLabel selected={selected} />}
-          onChange={(event) => {
-            const value = event.target.value
-            onChange({ ...filters, status: typeof value === 'string' ? value.split(',') : value })
+        <TextField
+          size="small"
+          label={searchByLabel}
+          placeholder={`${searchByLabel}…`}
+          value={filters.search}
+          onChange={(event) => onChange({ ...filters, search: event.target.value })}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') onSearch()
           }}
           sx={{
-            '& .MuiSelect-select': {
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              pr: 3
-            }
+            width: { xs: '100%', lg: 200 },
+            minWidth: 168,
+            maxWidth: 220,
+            '& .MuiOutlinedInput-root': { borderRadius: 1.5, background: brand.surface }
           }}
-        >
-          {STATUS_OPTIONS.map((option) => (
-            <MenuItem key={option} value={option}>
-              <Checkbox size="small" checked={filters.status.includes(option)} />
-              <ListItemText primary={option} />
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchOutlined fontSize="small" sx={{ color: brand.muted }} />
+              </InputAdornment>
+            )
+          }}
+        />
 
-      <FormControl size="small" sx={selectFieldSx}>
-        <InputLabel>Channel</InputLabel>
-        <Select
-          label="Channel"
-          value={filters.channel}
-          onChange={(event) => onChange({ ...filters, channel: event.target.value })}
-        >
-          <MenuItem value="all">All channels</MenuItem>
-          {CHANNEL_OPTIONS.map((option) => (
-            <MenuItem key={option} value={option}>{option}</MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+        <FormControl size="small" sx={statusFieldSx}>
+          <InputLabel shrink>Delivery Status</InputLabel>
+          <Select
+            multiple
+            displayEmpty
+            label="Delivery Status"
+            value={filters.status}
+            renderValue={(selected) => <SelectedValuesLabel selected={selected} />}
+            onChange={(event) => {
+              const value = event.target.value
+              onChange({ ...filters, status: typeof value === 'string' ? value.split(',') : value })
+            }}
+            sx={{
+              '& .MuiSelect-select': {
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                pr: 3
+              }
+            }}
+          >
+            {STATUS_OPTIONS.map((option) => (
+              <MenuItem key={option} value={option}>
+                <Checkbox size="small" checked={filters.status.includes(option)} />
+                <ListItemText primary={option} />
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-      <FormControl size="small" sx={selectFieldSx}>
-        <InputLabel>Range</InputLabel>
-        <Select
-          label="Range"
-          value={filters.tableRange}
-          onChange={(event) => onChange({ ...filters, tableRange: event.target.value })}
-        >
-          {RANGE_OPTIONS.map((option) => (
-            <MenuItem key={option} value={option}>{option}</MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+        <FormControl size="small" sx={selectFieldSx}>
+          <InputLabel>Channel</InputLabel>
+          <Select
+            label="Channel"
+            value={filters.channel}
+            onChange={(event) => onChange({ ...filters, channel: event.target.value })}
+          >
+            <MenuItem value="all">All channels</MenuItem>
+            {CHANNEL_OPTIONS.map((option) => (
+              <MenuItem key={option} value={option}>{option}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-      <Box sx={{ display: 'flex', gap: 0.75, ml: { lg: 'auto' } }}>
+        <FormControl size="small" sx={selectFieldSx}>
+          <InputLabel>Range</InputLabel>
+          <Select
+            label="Range"
+            value={filters.tableRange}
+            onChange={(event) => onChange({ ...filters, tableRange: event.target.value })}
+          >
+            {RANGE_OPTIONS.map((option) => (
+              <MenuItem key={option} value={option}>{option}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Stack>
+
+      <Box
+        sx={{
+          display: 'flex',
+          gap: 0.75,
+          flexShrink: 0,
+          ml: { lg: 'auto' },
+          alignSelf: { xs: 'flex-end', lg: 'flex-end' }
+        }}
+      >
         <Button
           variant="contained"
           onClick={onSearch}

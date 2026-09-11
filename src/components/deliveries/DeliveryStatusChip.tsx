@@ -1,5 +1,5 @@
 import { Chip } from '@mui/material'
-import type { DeliveryStatus } from '../../api/mockApi'
+import type { DeliveryStatus } from '../../api/deliveriesApi'
 import { STATUS_CONFIG } from '../../theme/statusConfig'
 
 const STATUS_KEY: Record<DeliveryStatus, keyof typeof STATUS_CONFIG> = {

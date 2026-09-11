@@ -1,7 +1,7 @@
 import { Box, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Tooltip, Typography, Button } from '@mui/material'
 import { ContentCopyOutlined } from '@mui/icons-material'
 import { useState } from 'react'
-import type { DeliveryRecipients } from '../../api/mockApi'
+import type { DeliveryRecipients } from '../../api/deliveriesApi'
 import { brand } from '../../theme/brand'
 import { copyToClipboard } from '../../utils/clipboard'
 

@@ -5,7 +5,7 @@ import {
   type DeliveryComment,
   type FetchParams,
   type SearchField
-} from '../api/mockApi'
+} from '../api/deliveriesApi'
 import type { DashboardRangeUi } from '../api/contracts'
 
 export type DeliverySortField = 'dateTime'

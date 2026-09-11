@@ -5,7 +5,6 @@ import { ThemeProvider } from '@mui/material/styles'
 import { SnackbarProvider } from 'notistack'
 import App from './App'
 import { appTheme } from './theme/brand'
-import ApiSetup from './api/apiSetup'
 
 const rootElement = document.getElementById('root')
 if (!rootElement) {
@@ -23,7 +22,6 @@ createRoot(rootElement).render(
     >
       <ThemeProvider theme={appTheme}>
         <CssBaseline />
-        <ApiSetup />
         <App />
       </ThemeProvider>
     </SnackbarProvider>

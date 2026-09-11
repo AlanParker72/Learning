@@ -15,10 +15,18 @@ npm run dev
 - `npm run typecheck` – TypeScript check
 - `npm run build` – typecheck + production bundle
 
+## Environment
+
+Copy `.env.example` to `.env`:
+
+- `VITE_USE_STUBS=true` — use stubs under `src/stubs/` (default)
+- `VITE_USE_STUBS=false` — call live APIs via axios (`withCredentials: true`)
+- `VITE_API_BASE` — axios `baseURL` for live mode
+
 ## Notes
 
 - Entry: `src/main.tsx`
 - Dashboard: `src/components/dashboard/DeliveryDashboard.tsx`
 - Deliveries table: `src/components/deliveries/DeliveriesTable.tsx`
-- Mock API: `src/api/mockApi.ts` and `src/api/dashboardStatusApi.ts`
-- Set `VITE_USE_STUBS=false` and `VITE_API_BASE` in `.env` to call a live API
+- HTTP: `src/api/httpClient.ts` (axios only)
+- Stubs: `src/stubs/` (one file per API)

@@ -1,6 +1,6 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from '@mui/material'
 import { brand } from '../../theme/brand'
-import type { DeliveryActionType } from '../../api/mockApi'
+import type { DeliveryActionType } from '../../api/deliveriesApi'
 
 type ActionConfirmDialogProps = {
   action: DeliveryActionType | null

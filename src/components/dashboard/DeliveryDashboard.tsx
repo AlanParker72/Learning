@@ -16,10 +16,10 @@ import ChannelChart from './ChannelChart'
 import DeliveriesTable from '../deliveries/DeliveriesTable'
 
 const METRIC_ICONS: Record<MetricKey, ReactNode> = {
-  sent: <OutboxOutlined sx={{ fontSize: 20 }} />,
-  queued: <HourglassEmptyOutlined sx={{ fontSize: 20 }} />,
-  failed: <ErrorOutline sx={{ fontSize: 20 }} />,
-  acknowledged: <TaskAltOutlined sx={{ fontSize: 20 }} />
+  sent: <OutboxOutlined />,
+  queued: <HourglassEmptyOutlined />,
+  failed: <ErrorOutline />,
+  acknowledged: <TaskAltOutlined />
 }
 
 const METRIC_COLORS: Record<MetricKey, string> = {
@@ -77,7 +77,7 @@ export default function DeliveryDashboard() {
           {dashboard.metrics.length === 0
             ? Array.from({ length: 4 }).map((_, index) => (
                 <Grid item xs={12} sm={6} md={3} key={index}>
-                  <Skeleton variant="rounded" height={124} />
+                  <Skeleton variant="rounded" height={112} />
                 </Grid>
               ))
             : dashboard.metrics.map((card) => (
@@ -85,12 +85,8 @@ export default function DeliveryDashboard() {
                   <MetricCard
                     label={card.label}
                     value={card.value}
-                    delta={card.delta}
-                    comparisonLabel={card.comparisonLabel}
                     color={METRIC_COLORS[card.key]}
                     icon={METRIC_ICONS[card.key]}
-                    sparkline={card.sparkline}
-                    invertDelta={card.key === 'failed'}
                   />
                 </Grid>
               ))}

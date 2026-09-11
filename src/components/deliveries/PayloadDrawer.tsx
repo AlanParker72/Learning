@@ -8,8 +8,13 @@ import {
   Stack,
   Typography
 } from '@mui/material'
-import { Close, ContentCopyOutlined } from '@mui/icons-material'
-import { useState } from 'react'
+import {
+  Close,
+  ContentCopyOutlined,
+  UnfoldLessOutlined,
+  UnfoldMoreOutlined
+} from '@mui/icons-material'
+import { useEffect, useState } from 'react'
 import { JsonView, allExpanded, defaultStyles } from 'react-json-view-lite'
 import 'react-json-view-lite/dist/index.css'
 import { brand } from '../../theme/brand'
@@ -25,6 +30,8 @@ type PayloadDrawerProps = {
   onRetry?: () => void
 }
 
+const collapseAll = (): boolean => false
+
 export default function PayloadDrawer({
   open,
   loading,
@@ -35,6 +42,15 @@ export default function PayloadDrawer({
   onRetry
 }: PayloadDrawerProps) {
   const [copied, setCopied] = useState(false)
+  const [expandAll, setExpandAll] = useState(true)
+  const [viewKey, setViewKey] = useState(0)
+
+  useEffect(() => {
+    if (!open) return
+    setExpandAll(true)
+    setViewKey((current) => current + 1)
+    setCopied(false)
+  }, [open, payload])
 
   const handleCopy = async () => {
     if (!payload) return
@@ -44,30 +60,66 @@ export default function PayloadDrawer({
     window.setTimeout(() => setCopied(false), 1600)
   }
 
+  const handleExpandAll = () => {
+    setExpandAll(true)
+    setViewKey((current) => current + 1)
+  }
+
+  const handleCollapseAll = () => {
+    setExpandAll(false)
+    setViewKey((current) => current + 1)
+  }
+
   return (
-    <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: '100%', sm: 520 } } }}>
+    <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: '100%', sm: 560 } } }}>
       <Box sx={{ p: 2.5, height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1.5 }}>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 800 }}>Input payload</Typography>
             {referenceLabel && (
               <Typography variant="body2" color="text.secondary">{referenceLabel}</Typography>
             )}
           </Box>
-          <Stack direction="row" spacing={0.5}>
-            <Button
-              size="small"
-              startIcon={<ContentCopyOutlined fontSize="small" />}
-              onClick={handleCopy}
-              disabled={!payload}
-              sx={{ color: brand.link, fontWeight: 700 }}
-            >
-              {copied ? 'Copied' : 'Copy JSON'}
-            </Button>
-            <IconButton onClick={onClose} aria-label="Close payload details">
-              <Close />
-            </IconButton>
-          </Stack>
+          <IconButton onClick={onClose} aria-label="Close payload details">
+            <Close />
+          </IconButton>
+        </Stack>
+
+        <Stack
+          direction="row"
+          spacing={0.75}
+          sx={{ mb: 1.5, flexWrap: 'wrap', gap: 0.75 }}
+          alignItems="center"
+        >
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<UnfoldMoreOutlined fontSize="small" />}
+            onClick={handleExpandAll}
+            disabled={!payload || loading}
+            sx={{ borderColor: brand.border, color: brand.textMuted, fontWeight: 700 }}
+          >
+            Expand all
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<UnfoldLessOutlined fontSize="small" />}
+            onClick={handleCollapseAll}
+            disabled={!payload || loading}
+            sx={{ borderColor: brand.border, color: brand.textMuted, fontWeight: 700 }}
+          >
+            Collapse all
+          </Button>
+          <Button
+            size="small"
+            startIcon={<ContentCopyOutlined fontSize="small" />}
+            onClick={handleCopy}
+            disabled={!payload || loading}
+            sx={{ color: brand.link, fontWeight: 700, ml: { sm: 'auto' } }}
+          >
+            {copied ? 'Copied' : 'Copy JSON'}
+          </Button>
         </Stack>
 
         <Divider sx={{ mb: 2 }} />
@@ -101,7 +153,12 @@ export default function PayloadDrawer({
                 '& .json-view-lite': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', fontSize: 13 }
               }}
             >
-              <JsonView data={payload} shouldExpandNode={allExpanded} style={defaultStyles} />
+              <JsonView
+                key={viewKey}
+                data={payload}
+                shouldExpandNode={expandAll ? allExpanded : collapseAll}
+                style={defaultStyles}
+              />
             </Box>
           )}
         </Box>

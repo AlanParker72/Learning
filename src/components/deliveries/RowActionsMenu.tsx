@@ -1,5 +1,5 @@
 import { Menu, MenuItem } from '@mui/material'
-import type { DeliveryActionType } from '../../api/mockApi'
+import type { DeliveryActionType } from '../../api/deliveriesApi'
 import type { DeliveryActionPermission } from '../../config/roles'
 
 type RowActionsMenuProps = {

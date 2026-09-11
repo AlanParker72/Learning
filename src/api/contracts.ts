@@ -1,39 +1,17 @@
 export const RANGE_OPTIONS = ['ONE_WEEK', 'TWO_WEEKS', 'THIRTY_DAYS', 'CUSTOM'] as const
-export type DashboardRangeUi = (typeof RANGE_OPTIONS)[number]
-export type DashboardRangeApi = DashboardRangeUi
-export type DashboardRange = DashboardRangeUi | string
+export type DashboardRangeApi = (typeof RANGE_OPTIONS)[number]
+export type DashboardRangeUi = DashboardRangeApi
+export type DashboardRange = DashboardRangeApi
 
-export const normalizeDashboardRange = (range?: string): DashboardRangeApi => {
-  const value = (range ?? 'TWO_WEEKS').trim().toUpperCase().replace(/\s+/g, '_')
+/** Accept only contract enum values — no alias mapping. */
+export const isDashboardRange = (value?: string): value is DashboardRangeApi =>
+  !!value && (RANGE_OPTIONS as readonly string[]).includes(value)
 
-  switch (value) {
-    case 'ONE_WEEK':
-    case 'ONEWEEK':
-    case '1_WEEK':
-    case '1WEEK':
-      return 'ONE_WEEK'
-    case 'TWO_WEEKS':
-    case 'TWO_WEEK':
-    case 'TWOWEEKS':
-    case 'TWOWEEK':
-    case '2_WEEKS':
-    case '2WEEKS':
-      return 'TWO_WEEKS'
-    case 'THIRTY_DAYS':
-    case 'THIRTYDAYS':
-    case '30_DAYS':
-    case '30DAYS':
-    case '1M':
-      return 'THIRTY_DAYS'
-    case 'CUSTOM':
-      return 'CUSTOM'
-    default:
-      return 'TWO_WEEKS'
-  }
-}
+export const toDashboardRange = (value?: string): DashboardRangeApi =>
+  isDashboardRange(value) ? value : 'TWO_WEEKS'
 
 export const dashboardRangeLabel = (value?: DashboardRange): string => {
-  switch (normalizeDashboardRange(value)) {
+  switch (toDashboardRange(value)) {
     case 'ONE_WEEK':
       return '1 Week'
     case 'TWO_WEEKS':
@@ -44,17 +22,6 @@ export const dashboardRangeLabel = (value?: DashboardRange): string => {
       return 'Custom'
     default:
       return '2 Weeks'
-  }
-}
-
-export const previousPeriodLabel = (value?: DashboardRange): string => {
-  switch (normalizeDashboardRange(value)) {
-    case 'ONE_WEEK':
-      return 'vs previous 7 days'
-    case 'TWO_WEEKS':
-      return 'vs previous 14 days'
-    default:
-      return 'vs previous period'
   }
 }
 
@@ -140,4 +107,8 @@ export type DeliveriesListResponseApi = {
 export type DeliveryActionRequestApi = {
   action: string
   comment: string
+}
+
+export type DeliveryActionResponseApi = {
+  success: boolean
 }
