@@ -17,8 +17,6 @@ export default function MetricCard({ label, value, color, iconBg, icon }: Metric
     <Paper
       elevation={0}
       sx={{
-        position: 'relative',
-        overflow: 'hidden',
         px: 2.5,
         py: 2.25,
         borderRadius: 3,
@@ -33,16 +31,6 @@ export default function MetricCard({ label, value, color, iconBg, icon }: Metric
         '&:hover': {
           borderColor: brand.border,
           boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)'
-        },
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 3,
-          background: color,
-          opacity: 0.85
         }
       }}
     >
