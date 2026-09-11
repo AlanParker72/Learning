@@ -1,18 +1,24 @@
-Delivery Status Vite + React + MUI
+# Delivery Performance Dashboard
 
-Quick start:
+Vite + React + TypeScript dashboard for message delivery status. The UI is the dashboard canvas only (no product sidebar).
 
-1. cd C:\projects\delivery-status-vite
-2. npm install
-3. npm run dev
+## Quick start
 
-This project is TypeScript-first. The mock API is implemented in src/api/mockApi.ts and the UI consumes TypeScript components under src/. Charts are separate components and the deliveries table supports search filters and URL query params.
+```bash
+npm install
+npm run dev
+```
 
-Notes:
-- Entry point: src/main.tsx
-- App component: src/App.tsx
-- Mock API: src/api/mockApi.ts (in-memory SAMPLE dataset, supports q, status, channel, page, pageSize)
-- Charts: src/components/StatusChart.tsx and src/components/ChannelChart.tsx
-- Table: src/components/DeliveriesTable.tsx (uses @mui/x-data-grid)
+## Scripts
 
-If you ran earlier versions with .jsx/.js files, those have been removed to keep the repo TypeScript-only.
+- `npm run dev` – local development server
+- `npm run typecheck` – TypeScript check
+- `npm run build` – typecheck + production bundle
+
+## Notes
+
+- Entry: `src/main.tsx`
+- Dashboard: `src/components/dashboard/DeliveryDashboard.tsx`
+- Deliveries table: `src/components/deliveries/DeliveriesTable.tsx`
+- Mock API: `src/api/mockApi.ts` and `src/api/dashboardStatusApi.ts`
+- Set `VITE_USE_STUBS=false` and `VITE_API_BASE` in `.env` to call a live API

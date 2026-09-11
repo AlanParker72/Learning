@@ -1,41 +1,42 @@
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import { useSnackbar } from 'notistack'
-import { addRequestInterceptor, addResponseInterceptor } from './httpClient'
-
-// ApiSetup registers global API interceptors:
-// - request interceptor adds Authorization header when token present
-// - response interceptor reports errors via notistack snackbar
+import {
+  addRequestInterceptor,
+  addResponseInterceptor,
+  removeRequestInterceptor,
+  removeResponseInterceptor,
+  type ApiRequestConfig
+} from './httpClient'
 
 export default function ApiSetup() {
   const { enqueueSnackbar } = useSnackbar()
 
   useEffect(() => {
-    // Request interceptor: attach Authorization header if token available
-    addRequestInterceptor((cfg: any) => {
-      try {
-        const token = localStorage.getItem('authToken') || (import.meta as any).env?.VITE_API_TOKEN || ''
-        if (token) {
-          cfg.headers = { ...(cfg.headers || {}), Authorization: `Bearer ${token}` }
+    const requestId = addRequestInterceptor((config: ApiRequestConfig) => {
+      const token = window.localStorage.getItem('authToken') || import.meta.env.VITE_API_TOKEN || ''
+      if (!token) return config
+      return {
+        ...config,
+        headers: {
+          ...(config.headers ?? {}),
+          Authorization: `Bearer ${token}`
         }
-      } catch (e) {
-        // ignore
       }
-      return cfg
     })
 
-    // Response interceptor: on success pass through, on error show toast and rethrow
-    addResponseInterceptor(
-      (payload: any) => payload,
-      (err: any) => {
-        try {
-          const message = (err && (err.message || err.body)) || 'Network error'
-          enqueueSnackbar(String(message), { variant: 'error' })
-        } catch (e) {
-          // ignore
-        }
-        return err
+    const responseId = addResponseInterceptor(
+      (payload) => payload,
+      (error: unknown) => {
+        const message = error instanceof Error ? error.message : 'Network error'
+        enqueueSnackbar(message, { variant: 'error' })
+        return error
       }
     )
+
+    return () => {
+      removeRequestInterceptor(requestId)
+      removeResponseInterceptor(responseId)
+    }
   }, [enqueueSnackbar])
 
   return null

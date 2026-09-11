@@ -10,10 +10,19 @@ export type DashboardStatusPoint = {
   queued: number
   acknowledged: number
   marketEmail: number
+  internalEmail: number
   smtpEmail: number
   pushNotifications: number
   total: number
 }
+
+type DashboardStatusSeed = Omit<DashboardStatusPoint, 'internalEmail'>
+
+const withChannelAliases = (points: DashboardStatusSeed[]): DashboardStatusPoint[] =>
+  points.map((point) => ({
+    ...point,
+    internalEmail: Math.round(point.smtpEmail * 0.85 + point.pushNotifications * 0.2)
+  }))
 
 export type DashboardStatusResponse = {
   range: DashboardRangeApi
@@ -22,7 +31,7 @@ export type DashboardStatusResponse = {
   data: DashboardStatusPoint[]
 }
 
-const statusByRange: Record<DashboardRangeApi, DashboardStatusPoint[]> = {
+const statusByRange: Record<DashboardRangeApi, DashboardStatusSeed[]> = {
   one_week: [
     { date: '2026-09-03', sent: 480, failed: 220, queued: 180, acknowledged: 150, marketEmail: 210, smtpEmail: 110, pushNotifications: 160, total: 1030 },
     { date: '2026-09-04', sent: 520, failed: 250, queued: 200, acknowledged: 160, marketEmail: 220, smtpEmail: 130, pushNotifications: 170, total: 1130 },
@@ -71,7 +80,7 @@ const statusByRange: Record<DashboardRangeApi, DashboardStatusPoint[]> = {
   ]
 }
 
-const channelByRange: Record<DashboardRangeApi, DashboardStatusPoint[]> = {
+const channelByRange: Record<DashboardRangeApi, DashboardStatusSeed[]> = {
   one_week: [
     { date: '2026-09-03', sent: 110, failed: 45, queued: 30, acknowledged: 70, marketEmail: 90, smtpEmail: 70, pushNotifications: 60, total: 300 },
     { date: '2026-09-04', sent: 130, failed: 50, queued: 35, acknowledged: 80, marketEmail: 110, smtpEmail: 80, pushNotifications: 75, total: 350 },
@@ -140,7 +149,7 @@ export async function fetchDashboardStatus(params: {
       range: normalizedRange,
       fromDate: params.fromDate,
       toDate: params.toDate,
-      data
+      data: withChannelAliases(data)
     }
   })
 }
@@ -165,7 +174,7 @@ export async function fetchDeliveryChannelTrend(params: {
       range: normalizedRange,
       fromDate: params.fromDate,
       toDate: params.toDate,
-      data
+      data: withChannelAliases(data)
     }
   })
 }

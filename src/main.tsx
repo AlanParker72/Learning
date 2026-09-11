@@ -1,15 +1,18 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
-import App from './App'
 import CssBaseline from '@mui/material/CssBaseline'
 import { ThemeProvider } from '@mui/material/styles'
-import { appTheme } from './theme/brand'
 import { SnackbarProvider } from 'notistack'
+import App from './App'
+import { appTheme } from './theme/brand'
 import ApiSetup from './api/apiSetup'
 
-const root = createRoot(document.getElementById('root')!)
+const rootElement = document.getElementById('root')
+if (!rootElement) {
+  throw new Error('Root element #root was not found')
+}
 
-root.render(
+createRoot(rootElement).render(
   <React.StrictMode>
     <SnackbarProvider
       maxSnack={4}
@@ -20,7 +23,6 @@ root.render(
     >
       <ThemeProvider theme={appTheme}>
         <CssBaseline />
-        {/* ApiSetup registers global interceptors and error -> toast mapping */}
         <ApiSetup />
         <App />
       </ThemeProvider>

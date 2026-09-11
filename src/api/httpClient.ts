@@ -1,124 +1,138 @@
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
+
 export type ApiRequestConfig<TResponse = unknown> = {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+  method?: HttpMethod
   url: string
-  params?: Record<string, string | number | undefined>
+  params?: Record<string, string | number | boolean | undefined>
   headers?: Record<string, string>
-  data?: any
+  data?: unknown
   mockResponse?: TResponse
 }
 
-type Interceptor = {
-  fulfilled?: (value: any) => any
-  rejected?: (error: any) => any
+type RequestInterceptor = {
+  fulfilled?: (config: ApiRequestConfig) => ApiRequestConfig
+  rejected?: (error: unknown) => unknown
 }
 
-const requestInterceptors: Interceptor[] = []
-const responseInterceptors: Interceptor[] = []
-
-export const apiInterceptors = {
-  request: requestInterceptors,
-  response: responseInterceptors
+type ResponseInterceptor = {
+  fulfilled?: <T>(value: T) => T
+  rejected?: (error: unknown) => unknown
 }
 
-export function addRequestInterceptor(fulfilled: (cfg: any) => any, rejected?: (err: any) => any) {
-  requestInterceptors.push({ fulfilled, rejected })
+const requestInterceptors: RequestInterceptor[] = []
+const responseInterceptors: ResponseInterceptor[] = []
+
+export function addRequestInterceptor(
+  fulfilled: (config: ApiRequestConfig) => ApiRequestConfig,
+  rejected?: (error: unknown) => unknown
+): number {
+  return requestInterceptors.push({ fulfilled, rejected }) - 1
 }
 
-export function addResponseInterceptor(fulfilled: (value: any) => any, rejected?: (err: any) => any) {
-  responseInterceptors.push({ fulfilled, rejected })
+export function addResponseInterceptor(
+  fulfilled: <T>(value: T) => T,
+  rejected?: (error: unknown) => unknown
+): number {
+  return responseInterceptors.push({ fulfilled, rejected }) - 1
 }
 
-// Environment-driven behavior
-const USE_STUBS = typeof import.meta !== 'undefined' && (import.meta as any).env && ((import.meta as any).env.VITE_USE_STUBS === 'true' || (import.meta as any).env.VITE_USE_STUBS === undefined)
-const API_BASE = typeof import.meta !== 'undefined' && (import.meta as any).env ? ((import.meta as any).env.VITE_API_BASE || '') : ''
+export function removeRequestInterceptor(id: number): void {
+  delete requestInterceptors[id]
+}
 
-function buildUrl(path: string, params?: Record<string, string | number | undefined>) {
+export function removeResponseInterceptor(id: number): void {
+  delete responseInterceptors[id]
+}
+
+const USE_STUBS = import.meta.env.VITE_USE_STUBS !== 'false'
+const API_BASE = import.meta.env.VITE_API_BASE ?? ''
+
+function buildUrl(path: string, params?: ApiRequestConfig['params']): string {
   const isAbsolute = /^https?:\/\//i.test(path)
-  const base = isAbsolute ? '' : API_BASE
-  const url = `${base}${path}`
+  const url = `${isAbsolute ? '' : API_BASE}${path}`
   const searchParams = new URLSearchParams()
-  Object.keys(params ?? {}).forEach((key) => {
-    const value = params?.[key]
+
+  Object.entries(params ?? {}).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') {
       searchParams.set(key, String(value))
     }
   })
-  return `${url}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+
+  const query = searchParams.toString()
+  return query ? `${url}?${query}` : url
+}
+
+export class ApiError extends Error {
+  status?: number
+  body?: string
+
+  constructor(message: string, status?: number, body?: string) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.body = body
+  }
 }
 
 export async function apiRequest<TResponse = unknown>(config: ApiRequestConfig<TResponse>): Promise<TResponse> {
-  let requestConfig = {
+  let requestConfig: ApiRequestConfig<TResponse> = {
     ...config,
     method: config.method ?? 'GET',
-    headers: { 'Accept': 'application/json', ...(config.headers ?? {}) }
+    headers: { Accept: 'application/json', ...(config.headers ?? {}) }
   }
 
-  // run request interceptors (sync)
   for (const interceptor of requestInterceptors) {
-    if (interceptor.fulfilled) {
-      // allow interceptor to modify config
-      // wrap in try to allow rejected handlers to run
-      try {
-        requestConfig = interceptor.fulfilled(requestConfig)
-      } catch (err) {
-        if (interceptor.rejected) interceptor.rejected(err)
-      }
+    if (!interceptor?.fulfilled) continue
+    try {
+      requestConfig = interceptor.fulfilled(requestConfig) as ApiRequestConfig<TResponse>
+    } catch (error) {
+      interceptor.rejected?.(error)
     }
   }
 
-  // If using stubs and mockResponse provided, return mock quickly
   if (USE_STUBS && config.mockResponse !== undefined) {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(config.mockResponse as TResponse), 150)
-    })
+    await new Promise((resolve) => window.setTimeout(resolve, 160))
+    return config.mockResponse
   }
 
   const url = buildUrl(requestConfig.url, requestConfig.params)
-
+  const headers: Record<string, string> = { ...(requestConfig.headers ?? {}) }
   const fetchOptions: RequestInit = {
     method: requestConfig.method,
-    headers: requestConfig.headers
+    headers
   }
 
-  if (requestConfig.method && requestConfig.method.toUpperCase() !== 'GET' && requestConfig.data !== undefined) {
+  if (requestConfig.method && requestConfig.method !== 'GET' && requestConfig.data !== undefined) {
     fetchOptions.body = typeof requestConfig.data === 'string' ? requestConfig.data : JSON.stringify(requestConfig.data)
-    if (!fetchOptions.headers) fetchOptions.headers = {}
-    // ensure content-type if not provided
-    if (!(fetchOptions.headers as Record<string, string>)['Content-Type']) {
-      (fetchOptions.headers as Record<string, string>)['Content-Type'] = 'application/json'
-    }
+    if (!headers['Content-Type']) headers['Content-Type'] = 'application/json'
   }
 
   try {
     const response = await fetch(url, fetchOptions)
 
     if (!response.ok) {
-      const errorPayload = await response.text().catch(() => null)
-      const err = new Error(`Request failed: ${response.status} ${response.statusText}`)
-      ;(err as any).status = response.status
-      ;(err as any).body = errorPayload
-      throw err
+      const body = await response.text().catch(() => undefined)
+      throw new ApiError(`Request failed: ${response.status} ${response.statusText}`, response.status, body)
     }
 
-    const contentType = response.headers.get('content-type') || ''
-    const payload = contentType.includes('application/json') ? (await response.json()) : (await response.text())
+    const contentType = response.headers.get('content-type') ?? ''
+    const payload = contentType.includes('application/json') ? await response.json() : await response.text()
 
     let finalPayload = payload as TResponse
     for (const interceptor of responseInterceptors) {
-      if (interceptor.fulfilled) {
+      if (interceptor?.fulfilled) {
         finalPayload = interceptor.fulfilled(finalPayload)
       }
     }
 
     return finalPayload
   } catch (error) {
-    let finalError = error
+    let finalError: unknown = error
     for (const interceptor of responseInterceptors) {
-      if (interceptor.rejected) {
+      if (interceptor?.rejected) {
         finalError = interceptor.rejected(finalError)
       }
     }
-
     throw finalError
   }
 }

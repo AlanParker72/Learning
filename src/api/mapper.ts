@@ -1,12 +1,18 @@
-// Mapper scaffolding for mapping raw API responses to app types.
-// The user will supply exact API response shapes; implement mapping here.
+import type { DashboardStatusResponse } from './dashboardStatusApi'
+import type { Delivery, FetchResult } from './mockApi'
 
-export function mapDeliveriesResponse(raw: any) {
-  // Placeholder - map server response to { items: Delivery[], total: number }
-  return raw
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+export function mapDeliveriesResponse(raw: unknown): FetchResult {
+  if (!isRecord(raw)) return { items: [], total: 0 }
+
+  const items = Array.isArray(raw.items) ? (raw.items as Delivery[]) : []
+  const total = typeof raw.total === 'number' ? raw.total : items.length
+  return { items, total }
 }
 
-export function mapDashboardStatusResponse(raw: any) {
-  // Placeholder - map status/chart responses into DashboardStatusResponse
-  return raw
+export function mapDashboardStatusResponse(raw: unknown): DashboardStatusResponse | null {
+  if (!isRecord(raw) || !Array.isArray(raw.data)) return null
+  return raw as DashboardStatusResponse
 }

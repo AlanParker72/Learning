@@ -28,9 +28,7 @@ export const normalizeDashboardRange = (range?: string): DashboardRangeApi => {
 }
 
 export const dashboardRangeLabel = (value?: DashboardRange): string => {
-  const normalized = normalizeDashboardRange(value as string)
-
-  switch (normalized) {
+  switch (normalizeDashboardRange(value)) {
     case 'one_week':
       return '1 Week'
     case 'two_week':
@@ -44,38 +42,13 @@ export const dashboardRangeLabel = (value?: DashboardRange): string => {
   }
 }
 
-export const getRangeDateWindow = (value?: DashboardRange, baseDate = new Date()) => {
-  const date = new Date(baseDate)
-  const to = new Date(baseDate)
-  const from = new Date(baseDate)
-
-  const range = normalizeDashboardRange(value as string)
-
-  switch (range) {
+export const previousPeriodLabel = (value?: DashboardRange): string => {
+  switch (normalizeDashboardRange(value)) {
     case 'one_week':
-      from.setDate(to.getDate() - 6)
-      break
+      return 'vs previous 7 days'
     case 'two_week':
-      from.setDate(to.getDate() - 13)
-      break
-    case 'THIRTY_DAYS':
-      from.setDate(to.getDate() - 29)
-      break
-    case 'CUSTOM':
+      return 'vs previous 14 days'
     default:
-      from.setDate(to.getDate() - 29)
-      break
-  }
-
-  return {
-    from,
-    to,
-    fromIso: dateToISO(from),
-    toIso: dateToISO(to),
-    label: `${formatDisplayDate(from)} – ${formatDisplayDate(to)}`
+      return 'vs previous period'
   }
 }
-
-const dateToISO = (date: Date) => date.toISOString().slice(0, 10)
-const formatDisplayDate = (date: Date) =>
-  date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
