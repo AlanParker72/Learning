@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   Alert,
   Button,
@@ -74,10 +74,21 @@ const nowLabel = (): string => {
   return `${date} ${time}`
 }
 
-export default function DeliveriesTable({ range = 'TWO_WEEKS' }: { range?: DashboardRangeUi }) {
+export default function DeliveriesTable({
+  range = 'TWO_WEEKS',
+  onAsofDateTimeChange
+}: {
+  range?: DashboardRangeUi
+  /** Deliveries list `asofDateTime` — drives header "Last updated". */
+  onAsofDateTimeChange?: (asofDateTime: string | null) => void
+}) {
   const { enqueueSnackbar } = useSnackbar()
   const deliveries = useDeliveries(range)
   const { allowedActions, hasAnyAction } = useCurrentUserRoles()
+
+  useEffect(() => {
+    onAsofDateTimeChange?.(deliveries.asofDateTime)
+  }, [deliveries.asofDateTime, onAsofDateTimeChange])
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   const [selectedRow, setSelectedRow] = useState<Delivery | null>(null)
   const [pendingAction, setPendingAction] = useState<DeliveryActionType | null>(null)

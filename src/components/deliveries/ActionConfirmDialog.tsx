@@ -1,4 +1,5 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from '@mui/material'
+import { usePortalContainer } from '../../embed/PortalContainerContext'
 import { brand } from '../../theme/brand'
 import type { DeliveryActionType } from '../../api/deliveriesApi'
 
@@ -21,10 +22,18 @@ export default function ActionConfirmDialog({
   onClose,
   onSubmit
 }: ActionConfirmDialogProps) {
+  const portalContainer = usePortalContainer() ?? undefined
   const title = action === 'acknowledge' ? 'Acknowledge delivery' : 'Resend delivery'
 
   return (
-    <Dialog open={Boolean(action)} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={Boolean(action)}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      container={portalContainer}
+      disableScrollLock
+    >
       <DialogTitle sx={{ fontWeight: 800 }}>{title}</DialogTitle>
       <DialogContent>
         {referenceLabel && (

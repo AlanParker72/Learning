@@ -66,6 +66,8 @@ export function useDeliveries(range: DashboardRangeUi) {
   const [sortField, setSortField] = useState<DeliverySortField>('dateTime')
   const [sortDir, setSortDir] = useState<DeliverySortDir>('desc')
   const [commentOverrides, setCommentOverrides] = useState<Record<string, DeliveryComment[]>>({})
+  /** Server-reported data freshness from deliveries list (`asofDateTime`). */
+  const [asofDateTime, setAsofDateTime] = useState<string | null>(null)
 
   const pageCount = Math.max(1, Math.ceil(total / pageSize))
 
@@ -87,11 +89,13 @@ export function useDeliveries(range: DashboardRangeUi) {
         const result = await fetchDeliveries(query)
         setRows(result.items)
         setTotal(result.total)
+        setAsofDateTime(result.asofDateTime ?? null)
         setError(null)
       } catch (cause) {
         setError(errorMessage(cause))
         setRows([])
         setTotal(0)
+        setAsofDateTime(null)
       } finally {
         setLoading(false)
       }
@@ -174,6 +178,7 @@ export function useDeliveries(range: DashboardRangeUi) {
     sortDir,
     toggleSort,
     commentsFor,
-    prependComment
+    prependComment,
+    asofDateTime
   }
 }

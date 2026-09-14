@@ -158,13 +158,23 @@ export function mapDeliveriesResponse(raw: unknown): FetchResult {
         ? response.total
         : items.length
 
+  const rawRecord = raw as Record<string, unknown>
+  const asofDateTime =
+    typeof rawRecord.asofDateTime === 'string'
+      ? rawRecord.asofDateTime
+      : typeof rawRecord.asOfDateTime === 'string'
+        ? rawRecord.asOfDateTime
+        : typeof rawRecord.asOfDate === 'string'
+          ? rawRecord.asOfDate
+          : undefined
+
   return {
     items,
     total,
     page: typeof response.page === 'number' ? response.page : undefined,
     pageSize: typeof response.pageSize === 'number' ? response.pageSize : undefined,
     totalPages: typeof response.totalPages === 'number' ? response.totalPages : undefined,
-    asofDateTime: typeof response.asofDateTime === 'string' ? response.asofDateTime : undefined
+    asofDateTime
   }
 }
 

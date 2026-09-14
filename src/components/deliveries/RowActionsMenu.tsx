@@ -1,6 +1,7 @@
 import { Menu, MenuItem } from '@mui/material'
 import type { DeliveryActionType } from '../../api/deliveriesApi'
 import type { DeliveryActionPermission } from '../../config/roles'
+import { usePortalContainer } from '../../embed/PortalContainerContext'
 
 type RowActionsMenuProps = {
   anchorEl: HTMLElement | null
@@ -19,6 +20,7 @@ export default function RowActionsMenu({
   allowedActions = ['acknowledge', 'resend'],
   manualRetryAllowed = true
 }: RowActionsMenuProps) {
+  const portalContainer = usePortalContainer() ?? undefined
   const showAcknowledge = allowedActions.includes('acknowledge')
   const showResend = allowedActions.includes('resend') && manualRetryAllowed
 
@@ -31,6 +33,8 @@ export default function RowActionsMenu({
       anchorEl={anchorEl}
       open={Boolean(anchorEl)}
       onClose={onClose}
+      container={portalContainer}
+      disableScrollLock
       anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       transformOrigin={{ vertical: 'top', horizontal: 'right' }}
     >

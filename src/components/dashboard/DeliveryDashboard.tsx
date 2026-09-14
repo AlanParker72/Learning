@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useState } from 'react'
 import { Alert, Box, Button, Grid, Skeleton, Stack, Typography } from '@mui/material'
 import {
   AccessTime,
@@ -7,7 +8,7 @@ import {
   SendOutlined
 } from '@mui/icons-material'
 import { brand } from '../../theme/brand'
-import { formatClockTime, formatDisplayDate } from '../../utils/format'
+import { formatClockTime, formatDisplayDate, parseFlexibleDate } from '../../utils/format'
 import { useDashboardData, type MetricKey } from '../../hooks/useDashboardData'
 import HeaderControls from './HeaderControls'
 import MetricCard from './MetricCard'
@@ -36,9 +37,18 @@ const METRIC_ICON_BG: Record<MetricKey, string> = {
   acknowledged: brand.status.acknowledged.bg
 }
 
+const formatAsofLabel = (asofDateTime: string | null): string => {
+  if (!asofDateTime) return '—'
+  const parsed = parseFlexibleDate(asofDateTime) ?? new Date(asofDateTime)
+  if (Number.isNaN(parsed.getTime())) return '—'
+  return formatClockTime(parsed)
+}
+
 export default function DeliveryDashboard() {
   const dashboard = useDashboardData('TWO_WEEKS')
+  const [asofDateTime, setAsofDateTime] = useState<string | null>(null)
   const rangeLabel = `${formatDisplayDate(dashboard.rangeWindow.from)} – ${formatDisplayDate(dashboard.rangeWindow.to)}`
+  const lastUpdatedLabel = formatAsofLabel(asofDateTime)
 
   return (
     <Box sx={{ minHeight: '100vh', background: brand.background, px: { xs: 2, md: 3 }, py: 3 }}>
@@ -52,7 +62,7 @@ export default function DeliveryDashboard() {
             range={dashboard.headerRange}
             onRangeChange={dashboard.handleHeaderRangeChange}
             rangeLabel={rangeLabel}
-            lastUpdatedLabel={formatClockTime(dashboard.lastUpdated)}
+            lastUpdatedLabel={lastUpdatedLabel}
           />
         </Stack>
 
@@ -113,7 +123,7 @@ export default function DeliveryDashboard() {
           </Grid>
         </Grid>
 
-        <DeliveriesTable range={dashboard.headerRange} />
+        <DeliveriesTable range={dashboard.headerRange} onAsofDateTimeChange={setAsofDateTime} />
       </Box>
     </Box>
   )

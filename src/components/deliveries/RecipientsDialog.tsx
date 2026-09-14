@@ -2,6 +2,7 @@ import { Box, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButto
 import { ContentCopyOutlined } from '@mui/icons-material'
 import { useState } from 'react'
 import type { DeliveryRecipients } from '../../api/deliveriesApi'
+import { usePortalContainer } from '../../embed/PortalContainerContext'
 import { brand } from '../../theme/brand'
 import { copyToClipboard } from '../../utils/clipboard'
 
@@ -41,6 +42,7 @@ function RecipientGroup({ label, emails, copiedEmail, onCopy }: {
 }
 
 export default function RecipientsDialog({ open, recipients, onClose }: RecipientsDialogProps) {
+  const portalContainer = usePortalContainer() ?? undefined
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null)
 
   const handleCopy = async (email: string) => {
@@ -51,7 +53,7 @@ export default function RecipientsDialog({ open, recipients, onClose }: Recipien
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth container={portalContainer} disableScrollLock>
       <DialogTitle sx={{ fontWeight: 800 }}>Recipients</DialogTitle>
       <DialogContent dividers>
         {!recipients ? (
