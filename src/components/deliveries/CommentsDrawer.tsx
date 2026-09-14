@@ -10,6 +10,7 @@ import {
 } from '@mui/material'
 import { Close } from '@mui/icons-material'
 import type { DeliveryComment } from '../../api/deliveriesApi'
+import { usePortalContainer } from '../../embed/PortalContainerContext'
 import { brand } from '../../theme/brand'
 import { initialsFromName, splitDateTime } from '../../utils/format'
 
@@ -21,8 +22,19 @@ type CommentsDrawerProps = {
 }
 
 export default function CommentsDrawer({ open, comments, referenceLabel, onClose }: CommentsDrawerProps) {
+  // Shadow DOM / WC: never scroll-lock document.body; portal into WC root (or host overlay).
+  const portalContainer = usePortalContainer() ?? undefined
+
   return (
-    <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: '100%', sm: 460 } } }}>
+    <Drawer
+      anchor="right"
+      open={open}
+      onClose={onClose}
+      container={portalContainer}
+      disableScrollLock
+      ModalProps={{ container: portalContainer, disableScrollLock: true }}
+      PaperProps={{ sx: { width: { xs: '100%', sm: 460 } } }}
+    >
       <Box sx={{ p: 2.5, height: '100%', display: 'flex', flexDirection: 'column' }}>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
           <Box>
@@ -49,7 +61,9 @@ export default function CommentsDrawer({ open, comments, referenceLabel, onClose
           ) : (
             <Stack spacing={0}>
               {comments.map((comment, index) => {
-                const actionColor = brand.actionColors[comment.action]
+                const actionKey = comment.action.trim().toLowerCase() as keyof typeof brand.actionColors
+                const actionColor =
+                  brand.actionColors[actionKey] ?? { bg: brand.surfaceLight, color: brand.textMuted }
                 const isLast = index === comments.length - 1
 
                 return (

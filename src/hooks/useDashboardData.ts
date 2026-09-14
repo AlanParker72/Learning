@@ -45,7 +45,7 @@ const summarizeMetric = (rows: DashboardStatusPoint[], key: MetricKey): MetricSu
   value: rows.reduce((sum, row) => sum + row[key], 0)
 })
 
-export function useDashboardData(initialRange: DashboardRangeUi = 'ONE_WEEK') {
+export function useDashboardData(initialRange: DashboardRangeUi = 'TWO_WEEKS') {
   const [headerRange, setHeaderRange] = useState<DashboardRangeUi>(initialRange)
   const [statusRange, setStatusRange] = useState<DashboardRangeUi>(initialRange)
   const [channelRange, setChannelRange] = useState<DashboardRangeUi>(initialRange)
@@ -56,7 +56,6 @@ export function useDashboardData(initialRange: DashboardRangeUi = 'ONE_WEEK') {
   const [statusLoading, setStatusLoading] = useState(false)
   const [channelLoading, setChannelLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
 
   const loadMetrics = useCallback(async (range: DashboardRangeUi) => {
     setMetricsLoading(true)
@@ -64,7 +63,6 @@ export function useDashboardData(initialRange: DashboardRangeUi = 'ONE_WEEK') {
       const { fromIso, toIso } = getRangeDates(range)
       const data = await fetchDashboardStatus({ range, fromDate: fromIso, toDate: toIso })
       setMetricsResponse(data)
-      setLastUpdated(new Date())
       setError(null)
     } catch (cause) {
       setError(errorMessage(cause))
@@ -79,7 +77,6 @@ export function useDashboardData(initialRange: DashboardRangeUi = 'ONE_WEEK') {
       const { fromIso, toIso } = getRangeDates(range)
       const data = await fetchDashboardStatus({ range, fromDate: fromIso, toDate: toIso })
       setStatusResponse(data)
-      setLastUpdated(new Date())
       setError(null)
     } catch (cause) {
       setError(errorMessage(cause))
@@ -94,7 +91,6 @@ export function useDashboardData(initialRange: DashboardRangeUi = 'ONE_WEEK') {
       const { fromIso, toIso } = getRangeDates(range)
       const data = await fetchDeliveryChannelTrend({ range, fromDate: fromIso, toDate: toIso })
       setChannelResponse(data)
-      setLastUpdated(new Date())
       setError(null)
     } catch (cause) {
       setError(errorMessage(cause))
@@ -103,7 +99,7 @@ export function useDashboardData(initialRange: DashboardRangeUi = 'ONE_WEEK') {
     }
   }, [])
 
-  /** Top header 1W / 2W: refresh KPIs, both charts, and (via prop) deliveries list. */
+  /** Top header 1W / 2W / 1M: refresh KPIs, both charts, and (via prop) deliveries list. */
   const handleHeaderRangeChange = useCallback((range: DashboardRangeUi) => {
     setHeaderRange(range)
     setStatusRange(range)
@@ -160,7 +156,6 @@ export function useDashboardData(initialRange: DashboardRangeUi = 'ONE_WEEK') {
     channelLoading,
     metrics,
     rangeWindow,
-    lastUpdated,
     error,
     reload
   }

@@ -17,7 +17,7 @@ export const dashboardRangeLabel = (value?: DashboardRange): string => {
     case 'TWO_WEEKS':
       return '2 Weeks'
     case 'THIRTY_DAYS':
-      return '30 Days'
+      return '1 Month'
     case 'CUSTOM':
       return 'Custom'
     default:
@@ -58,50 +58,59 @@ export type DashboardChannelResponseApi = {
   data: DashboardChannelPointApi[]
 }
 
-/** Raw delivery comment from deliveries list contract */
+/**
+ * Raw delivery comment from deliveries list contract.
+ * Wire field is `acttion` (API typo, double t). `action` is tolerated if ever corrected.
+ */
 export type DeliveryCommentApi = {
   comment: string
-  action: string
+  /** API wire field (typo: double t). */
+  acttion?: string
+  /** Tolerated alternate if API sends corrected spelling. */
+  action?: string
   commentedBy: string
   commentedDate: string
 }
 
 /**
  * Raw delivery list item from GET /alerts-admin/v1/deliveries.
+ * Field names match the API response exactly.
  * `function` is the API field name (reserved word in JS — access via bracket or mapper).
  */
 export type DeliveryApiItem = {
-  messageId?: string
-  id?: string
-  referenceId?: string
+  referenceId: number
+  recipients: {
+    to: string[]
+    cc: string[]
+    bcc: string[]
+  }
+  tenantId: string
+  correlationId: string
+  customerId: string | null
   recipientType: string
-  recipientId: string
-  applicationId: string
-  accountId: string
+  recipientId: string | null
+  applicationId: string | null
+  accountId: string | null
   source: string
-  function?: string
+  function: string | null
   deliveryDateTime: string
   deliveryStatus: string
   deliveryChannel: string
-  failureReason?: string | null
-  retryCount?: number
-  manualRetryAllowed?: boolean
-  inputAvailable?: boolean
-  comments?: DeliveryCommentApi[]
-  recipients?: {
-    to?: string[]
-    cc?: string[]
-    bcc?: string[]
-  }
-  tenant?: string
-  tenantId?: string
-  trackingId?: string
+  failureReason: string | null
+  retryCount: number
+  manualRetryAllowed: boolean
+  inputAvailable: boolean
+  comments?: DeliveryCommentApi[] | null
 }
 
+/** Paginated deliveries list response. */
 export type DeliveriesListResponseApi = {
-  items?: DeliveryApiItem[]
-  data?: DeliveryApiItem[]
-  total?: number
+  page: number
+  pageSize: number
+  totalPages: number
+  asofDateTime: string
+  totalRecords: number
+  records: DeliveryApiItem[]
 }
 
 export type DeliveryActionRequestApi = {

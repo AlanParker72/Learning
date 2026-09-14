@@ -15,12 +15,20 @@ import type { StatusCode } from '../theme/statusConfig'
 export type DeliveryStatus = StatusCode
 
 export type DeliveryActionType = 'acknowledge' | 'resend'
-export type SearchField = 'customerId' | 'referenceId' | 'recipientId' | 'applicationId' | 'accountId'
+
+/**
+ * Filter-bar search fields only:
+ * - customerId — match `customerId` (fallback recipientId)
+ * - prospectId — recipientType PROSPECT, match customerId/recipientId
+ * - source — match `source`
+ */
+export type SearchField = 'customerId' | 'prospectId' | 'source'
 
 export type DeliveryComment = {
   id: string
   comment: string
-  action: DeliveryActionType
+  /** Clean UI field mapped from API wire `acttion` (or corrected `action`). */
+  action: string
   commentedBy: string
   commentedDate: string
 }
@@ -33,19 +41,24 @@ export type DeliveryRecipients = {
 
 /** UI delivery model aligned to the deliveries API contract. */
 export type Delivery = {
+  /** String(referenceId) — used as path id for action/payload endpoints. */
   id: string
+  /**
+   * Same as `id`. Existing endpoints are `/deliveries/{messageId}/…`;
+   * we pass `String(referenceId)` for that path segment.
+   */
   messageId: string
+  referenceId: number
+  correlationId: string
+  customerId: string | null
   tenantId: string
-  trackingId: string
-  referenceId: string
   recipientType: string
-  recipientId: string
-  applicationId: string
-  accountId: string
-  tenant: string
+  recipientId: string | null
+  applicationId: string | null
+  accountId: string | null
   source: string
   /** Mapped from API field `function` (not shown as a table column). */
-  functionName: string
+  functionName: string | null
   deliveryDateTime: string
   deliveryStatus: DeliveryStatus
   deliveryChannel: string
@@ -66,7 +79,6 @@ export type FetchParams = {
   pageSize?: number
   customerId?: string
   range?: string
-  tableRange?: string
   sortField?: 'dateTime'
   sortDir?: 'asc' | 'desc'
 }
@@ -74,6 +86,10 @@ export type FetchParams = {
 export type FetchResult = {
   items: Delivery[]
   total: number
+  page?: number
+  pageSize?: number
+  totalPages?: number
+  asofDateTime?: string
 }
 
 /** GET /alerts-admin/v1/deliveries */
@@ -86,7 +102,6 @@ export async function fetchDeliveries(params: FetchParams = {}): Promise<FetchRe
     page = 1,
     pageSize = 10,
     range = 'TWO_WEEKS',
-    tableRange,
     sortField = 'dateTime',
     sortDir = 'desc'
   } = params
@@ -102,20 +117,20 @@ export async function fetchDeliveries(params: FetchParams = {}): Promise<FetchRe
       page,
       pageSize,
       range,
-      tableRange,
       sortField,
       sortDir
     })
     return mapDeliveriesResponse(raw)
   }
 
+  const channelParam = channel && channel !== 'all' ? channel : undefined
+
   const raw = await apiGet<DeliveriesListResponseApi>('/alerts-admin/v1/deliveries', {
     search: search ?? '',
     searchBy,
     status: selectedStatuses.join(','),
-    channel: channel ?? '',
+    channel: channelParam,
     range,
-    tableRange: tableRange ?? '',
     sortField,
     sortDir,
     page,
@@ -125,7 +140,10 @@ export async function fetchDeliveries(params: FetchParams = {}): Promise<FetchRe
   return mapDeliveriesResponse(raw)
 }
 
-/** POST /alerts-admin/v1/deliveries/{messageId}/action */
+/**
+ * POST /alerts-admin/v1/deliveries/{messageId}/action
+ * Path id is `String(referenceId)` from the delivery row.
+ */
 export async function submitDeliveryAction(params: {
   messageId: string
   action: DeliveryActionType
@@ -147,7 +165,10 @@ export async function submitDeliveryAction(params: {
   )
 }
 
-/** GET /alerts-admin/v1/deliveries/{messageId}/payload */
+/**
+ * GET /alerts-admin/v1/deliveries/{messageId}/payload
+ * Path id is `String(referenceId)` from the delivery row.
+ */
 export async function fetchDeliveryPayload(messageId: string): Promise<Record<string, unknown>> {
   if (USE_STUBS) {
     await stubDelay()

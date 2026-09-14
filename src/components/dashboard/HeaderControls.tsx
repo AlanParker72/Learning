@@ -12,7 +12,8 @@ type HeaderControlsProps = {
 
 const HEADER_RANGES: Array<{ label: string; value: DashboardRangeUi }> = [
   { label: '1 Week', value: 'ONE_WEEK' },
-  { label: '2 Weeks', value: 'TWO_WEEKS' }
+  { label: '2 Weeks', value: 'TWO_WEEKS' },
+  { label: '1 Month', value: 'THIRTY_DAYS' }
 ]
 
 export default function HeaderControls({
@@ -50,10 +51,10 @@ export default function HeaderControls({
                 py: 0.75,
                 minWidth: 88,
                 borderRadius: 0,
-                background: active ? brand.link : brand.surface,
+                background: active ? brand.tableHeader : brand.surface,
                 color: active ? '#fff' : brand.headerText,
                 fontWeight: 700,
-                '&:hover': { background: active ? brand.linkHover : brand.hoverLight }
+                '&:hover': { background: active ? brand.tableHeader : brand.hoverLight }
               }}
             >
               {option.label}

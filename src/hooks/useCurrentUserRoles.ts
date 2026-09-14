@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import {
   actionsForRoles,
-  fetchCurrentUserRoles,
-  isEditRole,
+  isAdminRole,
   isReadOnlyRole,
   type DeliveryActionPermission,
   type UserRole
 } from '../config/roles'
+import { useAppConfig } from '../context/AppConfigContext'
 
 export type CurrentUserRolesState = {
   roles: UserRole[]
@@ -14,44 +14,28 @@ export type CurrentUserRolesState = {
   allowedActions: DeliveryActionPermission[]
   canAcknowledge: boolean
   canResend: boolean
-  /** True when the user has any delivery row action permission (edit capability). */
+  /** True when the user has any delivery row action permission (admin capability). */
   hasAnyAction: boolean
-  /** True when at least one role is EDIT. */
+  /** True when the selected role is ADMIN. */
   canEdit: boolean
-  /** True when roles are present and none grant edit/actions. */
+  /** True when the selected role is READ_ONLY. */
   isReadOnly: boolean
 }
 
 /**
- * Loads current-user roles (mock stub today) and derives delivery action permissions.
+ * Derives delivery action permissions from AppConfig.selectedRole (bootstrapped in main.tsx).
  */
 export function useCurrentUserRoles(): CurrentUserRolesState {
-  const [roles, setRoles] = useState<UserRole[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    void fetchCurrentUserRoles()
-      .then((next) => {
-        if (!cancelled) setRoles(next)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const { selectedRole } = useAppConfig()
 
   return useMemo(() => {
+    const roles: UserRole[] = [selectedRole]
     const allowedActions = actionsForRoles(roles)
-    const canEdit = roles.some(isEditRole)
-    const isReadOnly =
-      roles.length > 0 && roles.every(isReadOnlyRole) && allowedActions.length === 0
+    const canEdit = isAdminRole(selectedRole)
+    const isReadOnly = isReadOnlyRole(selectedRole) && allowedActions.length === 0
     return {
       roles,
-      loading,
+      loading: false,
       allowedActions,
       canAcknowledge: allowedActions.includes('acknowledge'),
       canResend: allowedActions.includes('resend'),
@@ -59,5 +43,5 @@ export function useCurrentUserRoles(): CurrentUserRolesState {
       canEdit,
       isReadOnly
     }
-  }, [loading, roles])
+  }, [selectedRole])
 }

@@ -16,27 +16,27 @@ export type DeliveryFilters = {
   search: string
   status: string[]
   channel: string
-  tableRange: string
 }
 
 export const DEFAULT_DELIVERY_FILTERS: DeliveryFilters = {
   searchBy: 'customerId',
   search: '',
   status: [],
-  channel: 'all',
-  tableRange: 'Last 7 days'
+  channel: 'all'
 }
+
+const VALID_SEARCH_BY = new Set<SearchField>(['customerId', 'prospectId', 'source'])
 
 const readFiltersFromUrl = (): DeliveryFilters => {
   const params = new URLSearchParams(window.location.search)
   const statusParam = params.get('status')
+  const searchByParam = params.get('searchBy') as SearchField | null
 
   return {
-    searchBy: (params.get('searchBy') as SearchField) || 'customerId',
+    searchBy: searchByParam && VALID_SEARCH_BY.has(searchByParam) ? searchByParam : 'customerId',
     search: params.get('search') ?? '',
     status: statusParam ? statusParam.split(',').map((item) => item.trim()).filter(Boolean) : [],
-    channel: params.get('channel') ?? 'all',
-    tableRange: params.get('range') ?? 'Last 7 days'
+    channel: params.get('channel') ?? 'all'
   }
 }
 
@@ -46,7 +46,6 @@ const writeFiltersToUrl = (filters: DeliveryFilters) => {
   if (filters.search) params.set('search', filters.search)
   if (filters.status.length > 0) params.set('status', filters.status.join(','))
   if (filters.channel !== 'all') params.set('channel', filters.channel)
-  if (filters.tableRange !== 'Last 7 days') params.set('range', filters.tableRange)
 
   const next = params.toString()
   window.history.replaceState({}, '', next ? `${window.location.pathname}?${next}` : window.location.pathname)
@@ -67,6 +66,8 @@ export function useDeliveries(range: DashboardRangeUi) {
   const [sortField, setSortField] = useState<DeliverySortField>('dateTime')
   const [sortDir, setSortDir] = useState<DeliverySortDir>('desc')
   const [commentOverrides, setCommentOverrides] = useState<Record<string, DeliveryComment[]>>({})
+  /** Server-reported data freshness from deliveries list (`asofDateTime`). */
+  const [asofDateTime, setAsofDateTime] = useState<string | null>(null)
 
   const pageCount = Math.max(1, Math.ceil(total / pageSize))
 
@@ -80,7 +81,6 @@ export function useDeliveries(range: DashboardRangeUi) {
           status: filters.status,
           channel: filters.channel,
           range,
-          tableRange: filters.tableRange,
           page: nextPage,
           pageSize: nextPageSize,
           sortField: nextSortField,
@@ -89,11 +89,13 @@ export function useDeliveries(range: DashboardRangeUi) {
         const result = await fetchDeliveries(query)
         setRows(result.items)
         setTotal(result.total)
+        setAsofDateTime(result.asofDateTime ?? null)
         setError(null)
       } catch (cause) {
         setError(errorMessage(cause))
         setRows([])
         setTotal(0)
+        setAsofDateTime(null)
       } finally {
         setLoading(false)
       }
@@ -133,7 +135,7 @@ export function useDeliveries(range: DashboardRangeUi) {
   }, [sortField])
 
   const commentsFor = useCallback(
-    (row: Delivery): DeliveryComment[] => commentOverrides[row.messageId] ?? row.comments,
+    (row: Delivery): DeliveryComment[] => commentOverrides[row.id] ?? row.comments,
     [commentOverrides]
   )
 
@@ -141,7 +143,7 @@ export function useDeliveries(range: DashboardRangeUi) {
     setCommentOverrides((current) => {
       const next = { ...current }
       ids.forEach((id) => {
-        const existing = next[id] ?? rows.find((row) => row.messageId === id)?.comments ?? []
+        const existing = next[id] ?? rows.find((row) => row.id === id)?.comments ?? []
         next[id] = [comment, ...existing]
       })
       return next
@@ -176,6 +178,7 @@ export function useDeliveries(range: DashboardRangeUi) {
     sortDir,
     toggleSort,
     commentsFor,
-    prependComment
+    prependComment,
+    asofDateTime
   }
 }

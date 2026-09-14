@@ -1,83 +1,98 @@
 import { createTheme } from '@mui/material/styles'
 
-/** Delivery-list status colors — single source for chips, filters, and charts. */
+/** Delivery-list status colors — soft pastels; single source for chips, filters, and charts. */
 const deliveryStatus = {
   NEW: {
-    color: '#4f46e5',
-    background: '#eef0ff',
-    border: '#c7cbf9'
+    color: '#6b6fb8',
+    background: '#f0f1fb',
+    border: '#d4d6ef'
   },
   DISPATCHED: {
-    color: '#0d9488',
-    background: '#e6f7f5',
-    border: '#99d8d0'
+    color: '#4d8f87',
+    background: '#eef6f5',
+    border: '#c5ddd9'
   },
   ERROR_STOP: {
-    color: '#b91c1c',
-    background: '#fee2e2',
-    border: '#fca5a5'
+    color: '#b85f5f',
+    background: '#faf2f2',
+    border: '#e8cfcf'
   },
   ERROR_RETRY: {
-    color: '#c2410c',
-    background: '#ffedd5',
-    border: '#fdba74'
+    color: '#b8744a',
+    background: '#faf4ef',
+    border: '#e8d4c4'
   },
   PROCESSING: {
-    color: '#2563eb',
-    background: '#dbeafe',
-    border: '#93c5fd'
+    color: '#5a7eb8',
+    background: '#eef3fa',
+    border: '#c8d6e8'
   },
   QUEUED: {
-    color: '#c98d00',
-    background: '#fff1d8',
-    border: '#f7d38b'
+    color: '#a8893a',
+    background: '#faf6ed',
+    border: '#e8dcc0'
   },
   FAILED_RETRY: {
-    color: '#d92d20',
-    background: '#fde7e7',
-    border: '#f6b5b5'
+    color: '#c06a62',
+    background: '#faf1f0',
+    border: '#e8cfcc'
   },
   ACKNOWLEDGED: {
-    color: '#2b6fe8',
-    background: '#e9f1ff',
-    border: '#afcbff'
+    color: '#5a84b8',
+    background: '#eef3fa',
+    border: '#c5d5e8'
   },
   COMPLETE: {
-    color: '#2a9d61',
-    background: '#e9f9ef',
-    border: '#a7e7c1'
+    color: '#4d8f6a',
+    background: '#eef6f1',
+    border: '#c5ddd0'
   }
 } as const
 
 const chart = {
-  marketToEmail: '#2f7cf6',
-  smtp: '#ff5f57',
-  push: '#22b07d',
-  marketToEmailBg: '#eaf2ff',
-  smtpBg: '#ffe9e7',
-  pushBg: '#e8f9f1'
+  marketToEmail: '#6b93c9',
+  smtp: '#d48984',
+  push: '#5a9e7d',
+  marketToEmailBg: '#eef3fa',
+  smtpBg: '#faf1f0',
+  pushBg: '#eef6f1'
+} as const
+
+/** Stacked status bar + KPI accents — vivid pastel-bright (clear, not muddy/neon). */
+const metrics = {
+  sent: '#6fd4a4',
+  queued: '#f5cc6e',
+  failed: '#f2958a',
+  acknowledged: '#7ab8eb'
+} as const
+
+const status = {
+  sent: { bg: '#e8faf0', color: metrics.sent },
+  queued: { bg: '#fef8e8', color: metrics.queued },
+  failed: { bg: '#fef0ee', color: metrics.failed },
+  acknowledged: { bg: '#eaf4fc', color: metrics.acknowledged }
 } as const
 
 export const brand = {
-  primary: '#153415',
-  primaryDark: '#102d10',
-  primaryLight: '#e7efe7',
-  tableHeader: '#17324f',
-  link: '#1da05a',
-  linkHover: '#14804a',
-  background: '#f4f6fb',
+  primary: '#1a3a1a',
+  primaryDark: '#142e14',
+  primaryLight: '#e8f0e8',
+  tableHeader: '#2a4058',
+  link: '#459968',
+  linkHover: '#378056',
+  background: '#f5f7fb',
   surface: '#ffffff',
   surfaceLight: '#f8fafc',
-  border: '#e4eaf2',
-  muted: '#64748b',
-  textMuted: '#667588',
-  text: '#1f2937',
-  headerText: '#495a75',
-  hoverLight: '#f2f5fa',
+  border: '#e6ebf2',
+  muted: '#6b7a8d',
+  textMuted: '#6a7889',
+  text: '#2a3441',
+  headerText: '#5a6b82',
+  hoverLight: '#f3f5f9',
   overlay: {
     white60: 'rgba(255, 255, 255, 0.6)',
     borderSoft: 'rgba(148, 163, 184, 0.08)',
-    linkSoft: 'rgba(29, 160, 90, 0.06)'
+    linkSoft: 'rgba(69, 153, 104, 0.08)'
   },
   shadow: {
     card: '0 8px 24px rgba(15, 23, 42, 0.04)',
@@ -85,32 +100,26 @@ export const brand = {
     insetBorderSubtle: 'inset 0 0 0 1px rgba(148, 163, 184, 0.08)'
   },
   hoverBg: {
-    linkLight: 'rgba(29, 160, 90, 0.06)'
+    linkLight: 'rgba(69, 153, 104, 0.08)'
   },
   chart,
   /** Full delivery-list enum palette (color / background / border). */
   deliveryStatus,
-  /** Aggregate dashboard KPI status (maps onto deliveryStatus tokens). */
-  status: {
-    sent: { bg: deliveryStatus.COMPLETE.background, color: deliveryStatus.COMPLETE.color },
-    queued: { bg: deliveryStatus.QUEUED.background, color: deliveryStatus.QUEUED.color },
-    failed: { bg: deliveryStatus.FAILED_RETRY.background, color: deliveryStatus.FAILED_RETRY.color },
-    acknowledged: { bg: deliveryStatus.ACKNOWLEDGED.background, color: deliveryStatus.ACKNOWLEDGED.color }
-  },
-  metrics: {
-    sent: deliveryStatus.COMPLETE.color,
-    queued: deliveryStatus.QUEUED.color,
-    failed: deliveryStatus.FAILED_RETRY.color,
-    acknowledged: deliveryStatus.ACKNOWLEDGED.color
-  },
-  gridStroke: '#e7ecf3',
-  tick: '#7c8796',
+  /**
+   * Status bar series + KPI accents. Delivery-list chips keep `deliveryStatus` soft pastels.
+   */
+  metrics,
+  /** Aggregate dashboard KPI status (shares `metrics` series accents). */
+  status,
+  gridStroke: '#e8edf4',
+  tick: '#85919f',
   actionColors: {
     acknowledge: {
       bg: deliveryStatus.ACKNOWLEDGED.background,
       color: deliveryStatus.ACKNOWLEDGED.color
     },
-    resend: { bg: '#fff6f3', color: '#d97706' }
+    resend: { bg: '#faf5f0', color: '#c4904a' },
+    retry: { bg: '#faf5f0', color: '#c4904a' }
   }
 } as const
 

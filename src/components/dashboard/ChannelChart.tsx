@@ -15,7 +15,8 @@ type ChannelChartProps = {
 
 const RANGE_TOGGLES: Array<{ label: string; value: DashboardRangeUi }> = [
   { label: '1W', value: 'ONE_WEEK' },
-  { label: '2W', value: 'TWO_WEEKS' }
+  { label: '2W', value: 'TWO_WEEKS' },
+  { label: '1M', value: 'THIRTY_DAYS' }
 ]
 
 const SERIES = [
@@ -68,10 +69,10 @@ export default function ChannelChart({ data, range, onRangeChange, loading = fal
                   px: 1.25,
                   py: 0.4,
                   borderRadius: 999,
-                  background: active ? brand.link : 'transparent',
+                  background: active ? brand.tableHeader : 'transparent',
                   color: active ? '#fff' : brand.textMuted,
                   fontWeight: 800,
-                  '&:hover': { background: active ? brand.linkHover : brand.hoverLight }
+                  '&:hover': { background: active ? brand.tableHeader : brand.hoverLight }
                 }}
               >
                 {option.label}

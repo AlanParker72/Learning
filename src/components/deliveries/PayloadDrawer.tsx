@@ -16,7 +16,9 @@ import {
 } from '@mui/icons-material'
 import { useEffect, useState } from 'react'
 import { JsonView, allExpanded } from 'react-json-view-lite'
+// Document-mode CSS (Vite injects into <head>). Shadow DOM mounts also inject via embed/jsonViewerCss.
 import 'react-json-view-lite/dist/index.css'
+import { usePortalContainer } from '../../embed/PortalContainerContext'
 import { brand } from '../../theme/brand'
 import { copyToClipboard } from '../../utils/clipboard'
 import { payloadJsonStyles } from './payloadJsonViewerStyles'
@@ -65,6 +67,7 @@ export default function PayloadDrawer({
   onClose,
   onRetry
 }: PayloadDrawerProps) {
+  const portalContainer = usePortalContainer() ?? undefined
   const [copied, setCopied] = useState(false)
   const [expandAll, setExpandAll] = useState(true)
   const [viewKey, setViewKey] = useState(0)
@@ -95,7 +98,15 @@ export default function PayloadDrawer({
   }
 
   return (
-    <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: '100%', sm: 560 } } }}>
+    <Drawer
+      anchor="right"
+      open={open}
+      onClose={onClose}
+      container={portalContainer}
+      disableScrollLock
+      ModalProps={{ container: portalContainer, disableScrollLock: true }}
+      PaperProps={{ sx: { width: { xs: '100%', sm: 560 } } }}
+    >
       <Box sx={{ p: 2.5, height: '100%', display: 'flex', flexDirection: 'column', background: brand.surface }}>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1.5 }}>
           <Box>
