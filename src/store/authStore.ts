@@ -3,8 +3,8 @@ import { Role } from '../rbac/roles'
 
 type AuthState = {
   /**
-   * TEMP: driven by RoleSwitcher for local demo.
-   * Production auth should set roles from the session and ignore the switcher.
+   * TEMP: driven by RoleSwitcher for local demos.
+   * Production auth should set roles from the session.
    * Backend must never trust client-supplied role for authorization.
    */
   roles: Role[]

@@ -1,6 +1,6 @@
 /**
  * Canonical dashboard roles.
- * Add a new role here first, then wire permissions + config (see README / handoff).
+ * Add a new role here first, then wire permissions + config (see README).
  */
 export const Role = {
   O_MANAGER: 'O_MANAGER',
@@ -18,7 +18,6 @@ export const ALL_ROLES: readonly Role[] = [
   Role.Q_ANALYST
 ]
 
-/** UX-facing labels (OBS / QC Analyst Manager naming from screenshots). */
 export const ROLE_LABELS: Record<Role, string> = {
   [Role.O_MANAGER]: 'O Manager',
   [Role.O_ANALYST]: 'O Analyst',

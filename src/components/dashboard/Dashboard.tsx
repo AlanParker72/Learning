@@ -1,38 +1,40 @@
 import { useEffect, useMemo } from 'react'
-import { Alert, Box, Container, Paper } from '@mui/material'
-import { useSnackbar } from 'notistack'
+import {
+  Alert,
+  Box,
+  Chip,
+  Container,
+  List,
+  ListItem,
+  ListItemText,
+  Paper,
+  Stack,
+  Typography
+} from '@mui/material'
 import {
   filterByPermission,
   getDashboardConfig
 } from '../../config/dashboardConfig'
-import { useRbacDashboardData } from '../../hooks/useRbacDashboardData'
+import { Can } from '../../rbac/Can'
 import { Permission } from '../../rbac/permissions'
 import { usePermission } from '../../rbac/usePermission'
 import { useAuthStore } from '../../store/authStore'
 import { useDashboardStore } from '../../store/dashboardStore'
-import { DashboardContent } from './DashboardContent'
-import { DashboardFilters as DashboardFiltersBar } from './DashboardFilters'
-import { DashboardHeader } from './DashboardHeader'
-import { DashboardTabs } from './DashboardTabs'
+import { RoleSwitcher } from './RoleSwitcher'
 
 /**
- * Generic dashboard shell — role differences come from config + permissions.
- * No `role === …` branching in presentational children.
+ * Skeleton shell — demonstrates composition only:
+ *   resolve permissions → read config → list tab ids + `<Can>` example
+ *
+ * No real tables, filters, charts, or widgets. Fill those in later from
+ * `dashboardConfig` + `getDashboardData({ role, tab, filters })`.
  */
 export function Dashboard() {
-  const { enqueueSnackbar } = useSnackbar()
   const activeRole = useAuthStore((s) => s.activeRole)
   const { can, permissions } = usePermission()
 
   const activeTab = useDashboardStore((s) => s.activeTab)
-  const filters = useDashboardStore((s) => s.filters)
-  const selectedIds = useDashboardStore((s) => s.selectedIds)
   const setActiveTab = useDashboardStore((s) => s.setActiveTab)
-  const setFilter = useDashboardStore((s) => s.setFilter)
-  const resetFilters = useDashboardStore((s) => s.resetFilters)
-  const toggleSelected = useDashboardStore((s) => s.toggleSelected)
-  const setSelectedIds = useDashboardStore((s) => s.setSelectedIds)
-  const clearSelection = useDashboardStore((s) => s.clearSelection)
 
   const config = useMemo(() => getDashboardConfig(activeRole), [activeRole])
 
@@ -40,100 +42,89 @@ export function Dashboard() {
     () => filterByPermission(config.tabs, (p) => permissions.has(p)),
     [config.tabs, permissions]
   )
-  const visibleFilters = useMemo(
-    () => filterByPermission(config.filters, (p) => permissions.has(p)),
-    [config.filters, permissions]
-  )
-  const visibleWidgets = useMemo(
-    () => filterByPermission(config.widgets, (p) => permissions.has(p)),
-    [config.widgets, permissions]
-  )
-  const visibleActions = useMemo(
-    () => filterByPermission(config.actions, (p) => permissions.has(p)),
-    [config.actions, permissions]
-  )
 
-  const headerActions = visibleActions.filter((a) => a.placement === 'header')
-  const tableActions = visibleActions.filter(
-    (a) => a.placement === 'row' || a.placement === 'bulk'
-  )
-
-  // Keep active tab valid when role/config changes
   useEffect(() => {
-    if (visibleTabs.length === 0) return
+    if (visibleTabs.length === 0) {
+      if (activeTab !== '') setActiveTab('')
+      return
+    }
     if (!visibleTabs.some((t) => t.id === activeTab)) {
-      setActiveTab(config.defaultTab)
+      setActiveTab(config.defaultTab || visibleTabs[0].id)
     }
   }, [visibleTabs, activeTab, config.defaultTab, setActiveTab])
 
-  const activeTabDef = visibleTabs.find((t) => t.id === activeTab) ?? visibleTabs[0]
-  const queryTab = activeTabDef?.id ?? config.defaultTab
-
-  const { data, isLoading, isError } = useRbacDashboardData(
-    activeRole,
-    queryTab,
-    filters
-  )
-
   if (!can(Permission.DASHBOARD_VIEW)) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="md" sx={{ py: 4 }}>
         <Alert severity="warning">You do not have access to this dashboard.</Alert>
       </Container>
     )
   }
 
-  const notify = (message: string) => {
-    enqueueSnackbar(message, { variant: 'info' })
-  }
-
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', py: 3 }}>
-      <Container maxWidth="xl">
-        <Paper sx={{ p: { xs: 2, md: 3 } }} elevation={0} variant="outlined">
-          <DashboardHeader
-            config={config}
-            headerActions={headerActions}
-            selectedCount={selectedIds.length}
-            onHeaderAction={(actionId) => {
-              notify(
-                `${actionId} — ${selectedIds.length || 'no'} selected (mock)`
-              )
-              if (actionId === 'assign_records') clearSelection()
-            }}
-          />
+      <Container maxWidth="md">
+        <Paper sx={{ p: 3 }} elevation={0} variant="outlined">
+          <Stack spacing={2}>
+            <Typography variant="h5">{config.title}</Typography>
+            {config.subtitle ? (
+              <Typography variant="body2" color="text.secondary">
+                {config.subtitle}
+              </Typography>
+            ) : null}
 
-          <DashboardTabs
-            tabs={visibleTabs}
-            activeTab={queryTab}
-            onChange={setActiveTab}
-          />
+            {/* TEMP — delete RoleSwitcher when real auth supplies role */}
+            <RoleSwitcher />
 
-          <DashboardFiltersBar
-            filters={visibleFilters}
-            values={filters}
-            onChange={setFilter}
-            onReset={resetFilters}
-          />
+            <Typography variant="subtitle2">
+              Active role: <Chip size="small" label={activeRole} />
+            </Typography>
 
-          <DashboardContent
-            widgets={visibleWidgets}
-            activeTabDef={activeTabDef}
-            actions={tableActions}
-            data={data}
-            isLoading={isLoading}
-            isError={isError}
-            selectedIds={selectedIds}
-            onToggleSelected={toggleSelected}
-            onSelectAll={setSelectedIds}
-            onRowAction={(actionId, rowId) => {
-              notify(`${actionId} on ${rowId} (mock)`)
-            }}
-            onBulkAction={(actionId) => {
-              notify(`${actionId} for ${selectedIds.join(', ') || 'none'} (mock)`)
-              clearSelection()
-            }}
-          />
+            <Typography variant="subtitle2">Visible tab ids (from config ∩ permissions)</Typography>
+            {visibleTabs.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">
+                No tabs configured for this role yet — fill `dashboardConfigByRole`.
+              </Typography>
+            ) : (
+              <List dense disablePadding>
+                {visibleTabs.map((tab) => (
+                  <ListItem
+                    key={tab.id}
+                    disableGutters
+                    secondaryAction={
+                      tab.id === activeTab ? (
+                        <Chip size="small" label="active" color="primary" />
+                      ) : null
+                    }
+                    sx={{ cursor: 'pointer' }}
+                    onClick={() => setActiveTab(tab.id)}
+                  >
+                    <ListItemText primary={tab.id} secondary={tab.label} />
+                  </ListItem>
+                ))}
+              </List>
+            )}
+
+            {/* Prefer `<Can>` / `can()` over `role === …` in UI */}
+            <Can
+              permission={Permission.ACTION_EXAMPLE}
+              fallback={
+                <Typography variant="body2" color="text.secondary">
+                  &lt;Can permission=&quot;dashboard.action.example&quot;&gt; — hidden for this role
+                </Typography>
+              }
+            >
+              <Alert severity="info">
+                &lt;Can&gt; example: this role has ACTION_EXAMPLE
+              </Alert>
+            </Can>
+
+            <Typography variant="caption" color="text.secondary">
+              {
+                'Pipeline: Role → Permissions → dashboardConfig → Zustand → shell → getDashboardData({ role, tab, filters })'
+              }
+            </Typography>
+          </Stack>
         </Paper>
       </Container>
     </Box>

@@ -1,21 +1,13 @@
-import {
-  Button,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Stack,
-  Typography
-} from '@mui/material'
+import { FormControl, InputLabel, MenuItem, Select, Stack, Typography } from '@mui/material'
+import { getDashboardConfig } from '../../config/dashboardConfig'
 import { ALL_ROLES, ROLE_LABELS, type Role } from '../../rbac/roles'
 import { useAuthStore } from '../../store/authStore'
-import { getDashboardConfig } from '../../config/dashboardConfig'
 import { useDashboardStore } from '../../store/dashboardStore'
 
 /**
  * TEMP — local role switcher for demos.
- * Removal: delete this file, drop it from DashboardHeader, and stop reading
- * `activeRole` from the switcher (auth becomes the sole role source).
+ * Removal: delete this file and its import in `Dashboard.tsx`, then drive
+ * `authStore` from real session/auth.
  */
 export function RoleSwitcher() {
   const activeRole = useAuthStore((s) => s.activeRole)
@@ -47,18 +39,6 @@ export function RoleSwitcher() {
           ))}
         </Select>
       </FormControl>
-      <Stack direction="row" spacing={0.5}>
-        {ALL_ROLES.map((role) => (
-          <Button
-            key={role}
-            size="small"
-            variant={role === activeRole ? 'contained' : 'outlined'}
-            onClick={() => onChange(role)}
-          >
-            {ROLE_LABELS[role]}
-          </Button>
-        ))}
-      </Stack>
     </Stack>
   )
 }

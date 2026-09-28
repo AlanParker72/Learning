@@ -12,11 +12,11 @@ describe('Can', () => {
       roles: [Role.O_MANAGER]
     })
     render(
-      <Can permission={Permission.ACTION_REASSIGN}>
-        <span>Reassign control</span>
+      <Can permission={Permission.ACTION_EXAMPLE}>
+        <span>Allowed</span>
       </Can>
     )
-    expect(screen.getByText('Reassign control')).toBeInTheDocument()
+    expect(screen.getByText('Allowed')).toBeInTheDocument()
   })
 
   it('hides children when permission is missing', () => {
@@ -25,11 +25,11 @@ describe('Can', () => {
       roles: [Role.O_ANALYST]
     })
     render(
-      <Can permission={Permission.ACTION_REASSIGN} fallback={<span>Hidden</span>}>
-        <span>Reassign control</span>
+      <Can permission={Permission.ACTION_EXAMPLE} fallback={<span>Hidden</span>}>
+        <span>Allowed</span>
       </Can>
     )
-    expect(screen.queryByText('Reassign control')).not.toBeInTheDocument()
+    expect(screen.queryByText('Allowed')).not.toBeInTheDocument()
     expect(screen.getByText('Hidden')).toBeInTheDocument()
   })
 })

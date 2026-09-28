@@ -1,6 +1,6 @@
-# RBAC Dashboard Scaffold
+# RBAC Dashboard Skeleton
 
-Config-driven React + TypeScript dashboard shell. One `Dashboard` component; role differences come from **permissions + `dashboardConfig`**, not forked pages.
+Thin TypeScript scaffold showing how to maintain **RBAC for multiple roles** and how the pieces wire together. **Not** a full Onboarding/QC dashboard.
 
 ## Quick start
 
@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open the app and use the **Temp role** switcher (O Manager / O Analyst / Q Manager / Q Analyst). Tabs, filters, widgets, and actions update without a full page refresh.
+Use the **Temp role** switcher to flip O/Q Manager/Analyst. The shell only lists tab ids from config and shows a `<Can>` example.
 
 ## Scripts
 
@@ -18,24 +18,33 @@ Open the app and use the **Temp role** switcher (O Manager / O Analyst / Q Manag
 | `npm run dev` | Vite dev server |
 | `npm run typecheck` | TypeScript check |
 | `npm run build` | typecheck + production bundle |
-| `npm test` | Vitest (RBAC + mock API) |
+| `npm test` | Vitest (tiny RBAC + `<Can>` tests) |
 
-## Environment
-
-Copy `.env.example` to `.env`:
-
-- `VITE_USE_MOCK_API=true` — mock `getDashboardData({ role, tab, filters })` (default)
-- `VITE_USE_MOCK_API=false` — real HTTP via `apiClient`
-- `VITE_API_BASE_URL` — axios `baseURL`
-
-## Architecture (pipeline)
+## Pipeline
 
 ```
 Role → Permissions → dashboardConfig → Zustand (UI) → Dashboard shell
-  → getDashboardData({ role, tab, filters }) via TanStack Query
+  → getDashboardData({ role, tab, filters })
 ```
 
-### Key paths
+## How to add a role (3–5 files)
+
+1. `src/rbac/roles.ts` — add the role key (+ label).
+2. `src/rbac/rolePermissions.ts` — declare its permission list.
+3. `src/config/dashboardConfig.ts` — tabs / filters / widgets / columns / actions (`requiredPermission` optional).
+4. `src/services/dashboardApi.ts` — implement fetch for the new role+tabs *(when API exists)*.
+5. Backend grants for the same capabilities *(required for production)*.
+
+Shell, stores, and hooks do **not** fork per role.
+
+## What NOT to put in components
+
+- **No** `role === "Q_MANAGER"` (or similar) in presentational UI.
+- Use `can(permission)` / `<Can permission="…">` and items from `dashboardConfig`.
+- **Zustand** = UI state only (role, tab, filters). **TanStack Query** = server data.
+- Backend must not trust client-sent `role`.
+
+## Key paths
 
 | Concern | Path |
 | --- | --- |
@@ -43,36 +52,22 @@ Role → Permissions → dashboardConfig → Zustand (UI) → Dashboard shell
 | Permissions | `src/rbac/permissions.ts` |
 | Role → permissions | `src/rbac/rolePermissions.ts` |
 | `can()` / `<Can />` | `src/rbac/usePermission.ts`, `src/rbac/Can.tsx` |
-| Per-role layout | `src/config/dashboardConfig.ts`, `src/config/types.ts` |
+| Config shape | `src/config/types.ts`, `src/config/dashboardConfig.ts` |
 | Auth / temp role | `src/store/authStore.ts` |
-| Tab / filters UI state | `src/store/dashboardStore.ts` |
-| HTTP + mock API | `src/services/apiClient.ts`, `src/services/dashboardApi.ts` |
-| Shell | `src/components/dashboard/Dashboard.tsx` |
+| Tab / filters stubs | `src/store/dashboardStore.ts` |
+| HTTP + API stub | `src/services/apiClient.ts`, `src/services/dashboardApi.ts` |
+| Composition demo | `src/components/dashboard/Dashboard.tsx` |
 | Temp RoleSwitcher | `src/components/dashboard/RoleSwitcher.tsx` |
-
-### Separation rules
-
-- **No** `role === "Q_MANAGER"` in presentational widgets — use permissions + config.
-- **Zustand** = UI state only (role switcher, tab, filters, selection).
-- **TanStack Query** = server/mock data. Do not store API responses in Zustand.
-- **Backend** must not trust client-sent `role` (see comments in `apiClient.ts` / `dashboardApi.ts`).
-
-## How to add a new role (3–5 files)
-
-1. `src/rbac/roles.ts` — add the role key (+ label).
-2. `src/rbac/rolePermissions.ts` — declare its permission list.
-3. `src/config/dashboardConfig.ts` — add tabs / filters / widgets / columns / actions.
-4. `src/services/dashboardApi.ts` — mock (or real) data for the new role+tabs *(optional until API exists)*.
-5. Backend grants for the same capabilities *(required for production)*.
-
-Shell, stores, and query hooks do **not** fork per role.
 
 ## Removing the temp RoleSwitcher
 
 1. Delete `src/components/dashboard/RoleSwitcher.tsx`.
-2. Remove its usage from `DashboardHeader.tsx`.
-3. Point `authStore` roles at real session/auth instead of the switcher.
+2. Remove its import/usage from `Dashboard.tsx`.
+3. Point `authStore` at real session/auth.
 
-## Legacy delivery dashboard
+## Environment
 
-Older delivery-performance components under `src/components/deliveries/` and related `src/api/` remain in the tree but are not mounted by `App.tsx`.
+Copy `.env.example` → `.env`:
+
+- `VITE_USE_MOCK_API=true` — empty placeholder from `getDashboardData` (default)
+- `VITE_API_BASE_URL` — axios `baseURL` when mock is off
