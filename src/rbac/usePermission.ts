@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { useAuthStore } from '../store/authStore'
 import type { Permission } from './permissions'
 import { permissionsForRoles } from './rolePermissions'
@@ -9,10 +8,7 @@ import { permissionsForRoles } from './rolePermissions'
  */
 export function usePermission() {
   const roles = useAuthStore((s) => s.roles)
-
-  const permissions = useMemo(() => permissionsForRoles(roles), [roles])
-
+  const permissions = permissionsForRoles(roles)
   const can = (permission: Permission): boolean => permissions.has(permission)
-
   return { roles, permissions, can }
 }

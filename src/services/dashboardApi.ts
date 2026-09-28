@@ -9,13 +9,11 @@ export type GetDashboardDataParams = {
 }
 
 /**
- * Signature locked: `getDashboardData({ role, tab, filters })`.
+ * Data-fetch stub — kept so the Role → Permissions → Config → API pipeline stays visible.
  *
- * TODO: implement against the real API contract. Until then this returns an
- * empty placeholder (no rich mock datasets).
- *
- * BACKEND: Enforce role/tab/action scope from the session — do not trust
- * the client `role` parameter.
+ * Signature: `getDashboardData({ role, tab, filters })`.
+ * TODO: implement against the real API. Backend must authorize from the session —
+ * never trust the client-sent `role`.
  */
 export async function getDashboardData(
   params: GetDashboardDataParams
@@ -23,7 +21,6 @@ export async function getDashboardData(
   const useMock = import.meta.env.VITE_USE_MOCK_API !== 'false'
 
   if (useMock) {
-    // Skeleton: empty mock — replace with role-scoped fixtures when needed.
     return {
       role: params.role,
       tab: params.tab,
