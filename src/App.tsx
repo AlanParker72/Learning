@@ -1,5 +1,13 @@
-﻿import DeliveryDashboard from './components/dashboard/DeliveryDashboard'
+﻿import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { Dashboard } from './components/dashboard/Dashboard'
 
 export default function App() {
-  return <DeliveryDashboard />
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  )
 }
