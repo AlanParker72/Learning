@@ -1,14 +1,4 @@
 import type { DashboardConfig } from '../../config/types'
-import {
-  COL_APPLICANT,
-  COL_BANKER,
-  COL_DAYS_IN_QUEUE,
-  COL_DAYS_IN_REVIEW,
-  COL_ID,
-  COL_OBS_ANALYST,
-  COL_REVIEW_STATUS,
-  withColumnAction
-} from '../catalog/columns'
 import { Permission } from '../permissions'
 
 /**
@@ -35,14 +25,29 @@ export const O_ANALYST_PERMISSIONS = [
   Permission.ACTION_ASSIGN_TO_ME
 ] as const satisfies readonly Permission[]
 
-const O_ANALYST_COLUMNS = [
-  COL_ID,
-  COL_APPLICANT,
-  COL_DAYS_IN_QUEUE,
-  COL_DAYS_IN_REVIEW,
-  COL_REVIEW_STATUS,
-  COL_OBS_ANALYST,
-  COL_BANKER
+const O_ANALYST_MY_TASKS_COLUMNS = [
+  { id: 'idNumber', header: 'ID #', field: 'idNumber' },
+  { id: 'applicant', header: 'Applicant', field: 'applicant' },
+  { id: 'daysInQueue', header: 'Days in Queue', field: 'daysInQueue' },
+  { id: 'daysInReview', header: 'Days in Review', field: 'daysInReview' },
+  { id: 'reviewStatus', header: 'Review Status', field: 'reviewStatus' },
+  { id: 'obsAnalyst', header: 'OBS Analyst', field: 'obsAnalyst', actionId: 'claim' },
+  { id: 'banker', header: 'Banker', field: 'banker' }
+]
+
+const O_ANALYST_UNASSIGNED_COLUMNS = [
+  { id: 'idNumber', header: 'ID #', field: 'idNumber' },
+  { id: 'applicant', header: 'Applicant', field: 'applicant' },
+  { id: 'daysInQueue', header: 'Days in Queue', field: 'daysInQueue' },
+  { id: 'daysInReview', header: 'Days in Review', field: 'daysInReview' },
+  { id: 'reviewStatus', header: 'Review Status', field: 'reviewStatus' },
+  {
+    id: 'obsAnalyst',
+    header: 'OBS Analyst',
+    field: 'obsAnalyst',
+    actionId: 'assign_to_me'
+  },
+  { id: 'banker', header: 'Banker', field: 'banker' }
 ]
 
 const SEARCH_FILTER_PERMISSIONS = [
@@ -62,14 +67,14 @@ export const O_ANALYST_DASHBOARD: DashboardConfig = {
       label: 'My Tasks',
       requiredPermission: Permission.TAB_MY_TASKS,
       filterPermissions: SEARCH_FILTER_PERMISSIONS,
-      columns: withColumnAction(O_ANALYST_COLUMNS, 'obsAnalyst', 'claim')
+      columns: O_ANALYST_MY_TASKS_COLUMNS
     },
     {
       id: 'unassigned',
       label: 'Unassigned',
       requiredPermission: Permission.TAB_UNASSIGNED,
       filterPermissions: SEARCH_FILTER_PERMISSIONS,
-      columns: withColumnAction(O_ANALYST_COLUMNS, 'obsAnalyst', 'assign_to_me'),
+      columns: O_ANALYST_UNASSIGNED_COLUMNS,
       selectable: true
     }
   ],

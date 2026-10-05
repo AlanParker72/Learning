@@ -1,14 +1,4 @@
 import type { DashboardConfig } from '../../config/types'
-import {
-  COL_APPLICANT,
-  COL_BANKER,
-  COL_DATE_COMPLETED,
-  COL_DAYS_IN_QUEUE,
-  COL_DAYS_IN_REVIEW,
-  COL_ID,
-  COL_OBS_ANALYST,
-  COL_REVIEW_STATUS
-} from '../catalog/columns'
 import { Permission } from '../permissions'
 
 /**
@@ -46,22 +36,22 @@ export const O_MANAGER_PERMISSIONS = [
 ] as const satisfies readonly Permission[]
 
 const O_MANAGER_QUEUE_COLUMNS = [
-  COL_ID,
-  COL_APPLICANT,
-  COL_DAYS_IN_QUEUE,
-  COL_DAYS_IN_REVIEW,
-  COL_REVIEW_STATUS,
-  COL_OBS_ANALYST,
-  COL_BANKER
+  { id: 'idNumber', header: 'ID #', field: 'idNumber' },
+  { id: 'applicant', header: 'Applicant', field: 'applicant' },
+  { id: 'daysInQueue', header: 'Days in Queue', field: 'daysInQueue' },
+  { id: 'daysInReview', header: 'Days in Review', field: 'daysInReview' },
+  { id: 'reviewStatus', header: 'Review Status', field: 'reviewStatus' },
+  { id: 'obsAnalyst', header: 'OBS Analyst', field: 'obsAnalyst' },
+  { id: 'banker', header: 'Banker', field: 'banker' }
 ]
 
 const O_MANAGER_COMPLETED_COLUMNS = [
-  COL_ID,
-  COL_APPLICANT,
-  COL_DAYS_IN_REVIEW,
-  COL_DATE_COMPLETED,
-  COL_OBS_ANALYST,
-  COL_BANKER
+  { id: 'idNumber', header: 'ID #', field: 'idNumber' },
+  { id: 'applicant', header: 'Applicant', field: 'applicant' },
+  { id: 'daysInReview', header: 'Days in Review', field: 'daysInReview' },
+  { id: 'dateCompleted', header: 'Date Completed', field: 'dateCompleted' },
+  { id: 'obsAnalyst', header: 'OBS Analyst', field: 'obsAnalyst' },
+  { id: 'banker', header: 'Banker', field: 'banker' }
 ]
 
 /** Unassigned: name, ID#, Status — all inline. */
