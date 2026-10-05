@@ -1,74 +1,64 @@
-import { Permission } from '../permissions'
 import type { ColumnDef } from '../../config/types'
 
 /**
- * Optional reusable column stubs.
+ * Optional reusable column stubs (header + field only).
  * Roles may copy, spread, or define columns inline in their own dashboard config.
- * Visibility still requires the matching COLUMN_* grant in that role’s permission list.
+ * Listed on a tab ⇒ visible — no COLUMN_* permission.
  */
 export const COL_ID: ColumnDef = {
   id: 'idNumber',
   header: 'ID #',
-  field: 'idNumber',
-  requiredPermission: Permission.COLUMN_ID
+  field: 'idNumber'
 }
 
 export const COL_APPLICANT: ColumnDef = {
   id: 'applicant',
   header: 'Applicant',
-  field: 'applicant',
-  requiredPermission: Permission.COLUMN_APPLICANT
+  field: 'applicant'
 }
 
 export const COL_DAYS_IN_QUEUE: ColumnDef = {
   id: 'daysInQueue',
   header: 'Days in Queue',
-  field: 'daysInQueue',
-  requiredPermission: Permission.COLUMN_DAYS_IN_QUEUE
+  field: 'daysInQueue'
 }
 
 export const COL_DAYS_IN_REVIEW: ColumnDef = {
   id: 'daysInReview',
   header: 'Days in Review',
-  field: 'daysInReview',
-  requiredPermission: Permission.COLUMN_DAYS_IN_REVIEW
+  field: 'daysInReview'
 }
 
 export const COL_DATE_COMPLETED: ColumnDef = {
   id: 'dateCompleted',
   header: 'Date Completed',
-  field: 'dateCompleted',
-  requiredPermission: Permission.COLUMN_DATE_COMPLETED
+  field: 'dateCompleted'
 }
 
 export const COL_REVIEW_STATUS: ColumnDef = {
   id: 'reviewStatus',
   header: 'Review Status',
-  field: 'reviewStatus',
-  requiredPermission: Permission.COLUMN_REVIEW_STATUS
+  field: 'reviewStatus'
 }
 
 export const COL_BANKER: ColumnDef = {
   id: 'banker',
   header: 'Banker',
-  field: 'banker',
-  requiredPermission: Permission.COLUMN_BANKER
+  field: 'banker'
 }
 
 /** Q_* — maps to field `qcAnalyst`. */
 export const COL_QC_ANALYST: ColumnDef = {
   id: 'qcAnalyst',
   header: 'QC Analyst',
-  field: 'qcAnalyst',
-  requiredPermission: Permission.COLUMN_QC_ANALYST
+  field: 'qcAnalyst'
 }
 
 /** O_* — maps to field `obsAnalyst`. */
 export const COL_OBS_ANALYST: ColumnDef = {
   id: 'obsAnalyst',
   header: 'OBS Analyst',
-  field: 'obsAnalyst',
-  requiredPermission: Permission.COLUMN_OBS_ANALYST
+  field: 'obsAnalyst'
 }
 
 /** Attach a row action to a column by id (returns a new array). */

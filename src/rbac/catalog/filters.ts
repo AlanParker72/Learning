@@ -14,33 +14,68 @@ function currentMonthRangeDefault(): string {
 /**
  * Catalog of all filter defs keyed by permission.
  * Tabs list permission ids only; runtime intersects with role.permissions and resolves here.
+ * Apply/clear live on the def (`controls`) — no separate bundles / ACTION_APPLY grants.
  */
 export const FILTER_APPLICANT_NAME: FilterDef = {
   id: 'applicantName',
   label: 'Applicant Name',
   type: 'text',
   placeholder: 'Search by Applicant Name',
-  requiredPermission: Permission.FILTER_APPLICANT_NAME
+  requiredPermission: Permission.FILTER_APPLICANT_NAME,
+  presentation: 'inline'
 }
 
+/** Inline ID# (Unassigned-style). */
 export const FILTER_ID: FilterDef = {
   id: 'id',
   label: 'ID#',
   type: 'text',
   placeholder: 'Search by ID#',
-  requiredPermission: Permission.FILTER_ID
+  requiredPermission: Permission.FILTER_ID,
+  presentation: 'inline'
+}
+
+/**
+ * Chip “ID Number” — click expands to text field + apply (arrow) + clear (X).
+ * Same store key (`id`) as FILTER_ID.
+ */
+export const FILTER_ID_NUMBER: FilterDef = {
+  id: 'id',
+  label: 'ID Number',
+  type: 'text',
+  placeholder: 'Search by ID Number',
+  requiredPermission: Permission.FILTER_ID_NUMBER,
+  presentation: 'chip',
+  expandOnClick: true,
+  controls: ['apply', 'clear']
+}
+
+export const FILTER_STATUS: FilterDef = {
+  id: 'status',
+  label: 'Status',
+  type: 'select',
+  requiredPermission: Permission.FILTER_STATUS,
+  presentation: 'inline',
+  defaultValue: '',
+  options: [
+    { value: '', label: 'All' },
+    { value: 'Pending', label: 'Pending' },
+    { value: 'In Review', label: 'In Review' },
+    { value: 'Completed', label: 'Completed' }
+  ]
 }
 
 /**
  * Custom Range / Last N days dropdown (Completed-style).
- * `defaultValue` sets the select only — applied start/end come from Apply (Q)
- * or from FILTER_DATE_RANGE_PILL (O), not from this preset alone.
+ * `defaultValue` sets the select only — applied start/end come from Apply
+ * (controls on FILTER_END_DATE) or from FILTER_DATE_RANGE_PILL (O), not from this preset alone.
  */
 export const FILTER_DATE_RANGE_PRESET: FilterDef = {
   id: 'dateRangePreset',
   label: 'Custom Range',
   type: 'dateRangePreset',
   requiredPermission: Permission.FILTER_DATE_RANGE_PRESET,
+  presentation: 'inline',
   defaultValue: 'this_month',
   options: [
     { value: 'custom', label: 'Custom Range' },
@@ -54,14 +89,18 @@ export const FILTER_START_DATE: FilterDef = {
   id: 'startDate',
   label: 'Start Date',
   type: 'date',
-  requiredPermission: Permission.FILTER_START_DATE
+  requiredPermission: Permission.FILTER_START_DATE,
+  presentation: 'inline'
 }
 
+/** End date owns apply/clear for the Q Completed date draft group. */
 export const FILTER_END_DATE: FilterDef = {
   id: 'endDate',
   label: 'End Date',
   type: 'date',
-  requiredPermission: Permission.FILTER_END_DATE
+  requiredPermission: Permission.FILTER_END_DATE,
+  presentation: 'inline',
+  controls: ['apply', 'clear']
 }
 
 /**
@@ -74,6 +113,7 @@ export const FILTER_DATE_RANGE_PILL: FilterDef = {
   label: 'Date range',
   type: 'dateRangePill',
   requiredPermission: Permission.FILTER_DATE_RANGE_PILL,
+  presentation: 'chip',
   rangeKeys: { start: 'startDate', end: 'endDate' },
   defaultValue: currentMonthRangeDefault()
 }
@@ -82,6 +122,8 @@ export const FILTER_DATE_RANGE_PILL: FilterDef = {
 export const FILTER_BY_PERMISSION: Partial<Record<Permission, FilterDef>> = {
   [Permission.FILTER_APPLICANT_NAME]: FILTER_APPLICANT_NAME,
   [Permission.FILTER_ID]: FILTER_ID,
+  [Permission.FILTER_ID_NUMBER]: FILTER_ID_NUMBER,
+  [Permission.FILTER_STATUS]: FILTER_STATUS,
   [Permission.FILTER_DATE_RANGE_PRESET]: FILTER_DATE_RANGE_PRESET,
   [Permission.FILTER_START_DATE]: FILTER_START_DATE,
   [Permission.FILTER_END_DATE]: FILTER_END_DATE,
@@ -92,6 +134,8 @@ export const FILTER_BY_PERMISSION: Partial<Record<Permission, FilterDef>> = {
 export const ALL_FILTERS: readonly FilterDef[] = [
   FILTER_APPLICANT_NAME,
   FILTER_ID,
+  FILTER_ID_NUMBER,
+  FILTER_STATUS,
   FILTER_DATE_RANGE_PRESET,
   FILTER_START_DATE,
   FILTER_END_DATE,

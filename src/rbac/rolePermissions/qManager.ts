@@ -15,11 +15,9 @@ import { Permission } from '../permissions'
 /**
  * Q_MANAGER — Quality Control manager.
  * This file owns both the permission list and this role’s dashboard config.
- * Grant/revoke UI pieces by adding/removing Permission.* entries below;
- * tabs list filter/action permission ids only — catalog supplies UI metadata.
  *
- * Completed filters (screenshot 1): Custom Range + Start/End + Apply/Clear icons.
- * Unassigned / Team Tasks keep applicant + id search filters.
+ * Queue tabs: Applicant + ID# (inline). Completed: date preset + start/end with
+ * apply/clear on FILTER_END_DATE (filter-owned controls).
  */
 
 export const Q_MANAGER_PERMISSIONS = [
@@ -40,22 +38,9 @@ export const Q_MANAGER_PERMISSIONS = [
   Permission.FILTER_START_DATE,
   Permission.FILTER_END_DATE,
 
-  // Columns
-  Permission.COLUMN_ID,
-  Permission.COLUMN_APPLICANT,
-  Permission.COLUMN_DAYS_IN_QUEUE,
-  Permission.COLUMN_DAYS_IN_REVIEW,
-  Permission.COLUMN_DATE_COMPLETED,
-  Permission.COLUMN_REVIEW_STATUS,
-  Permission.COLUMN_OBS_ANALYST,
-  Permission.COLUMN_QC_ANALYST,
-  Permission.COLUMN_BANKER,
-
-  // Actions
+  // Actions (standalone — apply/clear for dates live on FilterDef.controls)
   Permission.ACTION_ASSIGN_RECORDS,
-  Permission.ACTION_BULK_SELECT,
-  Permission.ACTION_APPLY_DATE_FILTER,
-  Permission.ACTION_CLEAR_FILTERS
+  Permission.ACTION_BULK_SELECT
 ] as const satisfies readonly Permission[]
 
 const Q_MANAGER_QUEUE_COLUMNS = [
@@ -68,7 +53,7 @@ const Q_MANAGER_QUEUE_COLUMNS = [
   COL_BANKER
 ]
 
-/** Completed columns per screenshot — Date Completed; no Days in Queue. */
+/** Completed columns — Date Completed; no Days in Queue. */
 const Q_MANAGER_COMPLETED_COLUMNS = [
   COL_ID,
   COL_APPLICANT,
@@ -84,7 +69,7 @@ const SEARCH_FILTER_PERMISSIONS = [
   Permission.FILTER_ID
 ]
 
-/** Screenshot 1: preset dropdown + start/end dates. */
+/** Preset + start/end; apply/clear on FILTER_END_DATE in catalog. */
 const COMPLETED_FILTER_PERMISSIONS = [
   Permission.FILTER_DATE_RANGE_PRESET,
   Permission.FILTER_START_DATE,
@@ -105,10 +90,7 @@ export const Q_MANAGER_DASHBOARD: DashboardConfig = {
       filterPermissions: SEARCH_FILTER_PERMISSIONS,
       columns: Q_MANAGER_QUEUE_COLUMNS,
       selectable: true,
-      actionPermissions: [
-        Permission.ACTION_BULK_SELECT,
-        Permission.ACTION_CLEAR_FILTERS
-      ]
+      actionPermissions: [Permission.ACTION_BULK_SELECT]
     },
     {
       id: 'team_tasks',
@@ -117,21 +99,14 @@ export const Q_MANAGER_DASHBOARD: DashboardConfig = {
       filterPermissions: SEARCH_FILTER_PERMISSIONS,
       columns: Q_MANAGER_QUEUE_COLUMNS,
       selectable: true,
-      actionPermissions: [
-        Permission.ACTION_BULK_SELECT,
-        Permission.ACTION_CLEAR_FILTERS
-      ]
+      actionPermissions: [Permission.ACTION_BULK_SELECT]
     },
     {
       id: 'completed',
       label: 'Completed',
       requiredPermission: Permission.TAB_COMPLETED,
       filterPermissions: COMPLETED_FILTER_PERMISSIONS,
-      columns: Q_MANAGER_COMPLETED_COLUMNS,
-      actionPermissions: [
-        Permission.ACTION_APPLY_DATE_FILTER,
-        Permission.ACTION_CLEAR_FILTERS
-      ]
+      columns: Q_MANAGER_COMPLETED_COLUMNS
     }
   ],
   actionPermissions: [Permission.ACTION_ASSIGN_RECORDS]

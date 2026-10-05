@@ -33,7 +33,9 @@ import { DashboardTabs } from './DashboardTabs'
  *
  * On mount / when role|tab|filters change: TanStack Query → getDashboardData.
  *
- * Filters/actions: tab permission ids ∩ role.permissions → catalog.
+ * Filters: tab.filterPermissions ∩ role.permissions → catalog (controls on FilterDef).
+ * Actions: standalone only (Claim, Assign, Clear All, …) via actionPermissions ∩ role.
+ * Columns: listed on the tab config ⇒ visible (no COLUMN_* permissions).
  */
 export function Dashboard() {
   const activeRole = useAuthStore((s) => s.activeRole)
@@ -125,9 +127,8 @@ export function Dashboard() {
   )
   const hasBulkSelect = visibleActions.some((a) => a.id === 'bulk_select')
 
-  const visibleColumns = activeTabDef
-    ? filterByPermission(activeTabDef.columns, can)
-    : []
+  // Columns listed on the tab config are visible — no COLUMN_* permission gate.
+  const visibleColumns = activeTabDef?.columns ?? []
 
   const { data, isLoading, isError, isFetching, refetch } = useDashboardData(
     activeRole,
@@ -196,10 +197,7 @@ export function Dashboard() {
             onClearKeys={clearFilterKeys}
             onReset={resetFilters}
             onAction={(actionId) => {
-              if (
-                actionId !== 'clear_filters' &&
-                actionId !== 'apply_date_filter'
-              ) {
+              if (actionId !== 'clear_filters') {
                 setToast(actionId)
               }
             }}

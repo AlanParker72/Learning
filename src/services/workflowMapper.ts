@@ -143,7 +143,7 @@ function parseRowDate(displayOrIso: string): Date | null {
 }
 
 /**
- * Client-side name / ID# / date-range filters after the role+tab scoped fetch.
+ * Client-side name / ID# / status / date-range filters after the role+tab scoped fetch.
  * (Request body has no dedicated applicant/businessKey fields yet.)
  */
 export function applyClientFilters(
@@ -151,12 +151,14 @@ export function applyClientFilters(
   filters: {
     applicantName?: string
     id?: string
+    status?: string
     startDate?: string
     endDate?: string
   }
 ): DashboardTableRow[] {
   const nameQ = (filters.applicantName ?? '').trim().toLowerCase()
   const idQ = (filters.id ?? '').trim().toLowerCase()
+  const statusQ = (filters.status ?? '').trim().toLowerCase()
   const start = (filters.startDate ?? '').trim()
   const end = (filters.endDate ?? '').trim()
   const startD = start ? new Date(`${start}T00:00:00`) : null
@@ -168,6 +170,12 @@ export function applyClientFilters(
       idQ &&
       !row.idNumber.toLowerCase().includes(idQ) &&
       !(row.taskId ?? '').toLowerCase().includes(idQ)
+    ) {
+      return false
+    }
+    if (
+      statusQ &&
+      !row.reviewStatus.toLowerCase().includes(statusQ)
     ) {
       return false
     }

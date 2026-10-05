@@ -1,4 +1,4 @@
-import CheckIcon from '@mui/icons-material/Check'
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 import CloseIcon from '@mui/icons-material/Close'
 import {
   Box,
@@ -20,7 +20,7 @@ import { formatDisplayDate, rangeForPreset } from '../../utils/dateRange'
 
 type Props = {
   filters: FilterDef[]
-  /** Permission-gated filter-bar actions (Apply, Clear, …). */
+  /** Standalone filter-bar actions (e.g. Clear All) — not filter-owned apply/clear. */
   actions?: ActionDef[]
   values: FilterValues
   onChange: (id: string, value: string) => void
@@ -34,9 +34,53 @@ function rangeKeysFor(filter: FilterDef): { start: string; end: string } {
   return filter.rangeKeys ?? { start: 'startDate', end: 'endDate' }
 }
 
+function hasControl(filter: FilterDef, control: 'apply' | 'clear'): boolean {
+  return Boolean(filter.controls?.includes(control))
+}
+
+function FilterControls({
+  filter,
+  onApply,
+  onClear
+}: {
+  filter: FilterDef
+  onApply?: () => void
+  onClear?: () => void
+}) {
+  if (!filter.controls?.length) return null
+  return (
+    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25 }}>
+      {hasControl(filter, 'apply') && onApply ? (
+        <Tooltip title="Apply">
+          <IconButton
+            size="small"
+            color="primary"
+            aria-label={`Apply ${filter.label}`}
+            onClick={onApply}
+          >
+            <ArrowForwardIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      ) : null}
+      {hasControl(filter, 'clear') && onClear ? (
+        <Tooltip title="Clear">
+          <IconButton
+            size="small"
+            aria-label={`Clear ${filter.label}`}
+            onClick={onClear}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      ) : null}
+    </Box>
+  )
+}
+
 /**
- * Config-driven filter bar — renders each def by `type`.
- * Does not assume every tab has applicant + id.
+ * Config-driven filter bar — renders each def by `type` + `presentation`.
+ * Chip filters expand to input + filter-owned controls; apply/clear do not
+ * require ACTION_* on the role/tab.
  */
 export function DashboardFilters({
   filters,
@@ -48,12 +92,24 @@ export function DashboardFilters({
   onReset,
   onAction
 }: Props) {
-  // Draft start/end until Apply (Q_MANAGER Completed style).
+  const dateApplyOwner = filters.find(
+    (f) =>
+      (f.type === 'date' || f.type === 'dateRangePreset') &&
+      hasControl(f, 'apply')
+  )
+  const usesDateDraft = Boolean(dateApplyOwner)
+
   const [draftStart, setDraftStart] = useState(values.startDate ?? '')
   const [draftEnd, setDraftEnd] = useState(values.endDate ?? '')
   const [draftPreset, setDraftPreset] = useState(
     values.dateRangePreset ?? 'custom'
   )
+  /** Expanded chip filter ids (text with expandOnClick). */
+  const [expandedChips, setExpandedChips] = useState<Record<string, boolean>>(
+    {}
+  )
+  /** Draft values for chip text filters until Apply. */
+  const [chipDrafts, setChipDrafts] = useState<Record<string, string>>({})
 
   useEffect(() => {
     setDraftStart(values.startDate ?? '')
@@ -61,15 +117,24 @@ export function DashboardFilters({
     setDraftPreset(values.dateRangePreset ?? 'custom')
   }, [values.startDate, values.endDate, values.dateRangePreset])
 
+  // Collapse chips / sync drafts when the filter set changes (tab switch).
+  useEffect(() => {
+    setExpandedChips({})
+    const next: Record<string, string> = {}
+    for (const f of filters) {
+      if (f.presentation === 'chip' && f.type === 'text') {
+        next[f.id] = values[f.id] ?? ''
+      }
+    }
+    setChipDrafts(next)
+  }, [filters])
+
   if (filters.length === 0 && actions.length === 0) return null
 
-  const hasApply = actions.some((a) => a.id === 'apply_date_filter')
-  const clearAction = actions.find((a) => a.id === 'clear_filters')
-  const otherActions = actions.filter(
-    (a) => a.id !== 'apply_date_filter' && a.id !== 'clear_filters'
-  )
+  const clearAllAction = actions.find((a) => a.id === 'clear_filters')
+  const otherActions = actions.filter((a) => a.id !== 'clear_filters')
 
-  const applyDraft = () => {
+  const applyDateDraft = () => {
     let start = draftStart
     let end = draftEnd
     if (draftPreset && draftPreset !== 'custom') {
@@ -87,7 +152,13 @@ export function DashboardFilters({
       startDate: start,
       endDate: end
     })
-    onAction?.('apply_date_filter')
+  }
+
+  const clearDateDraft = () => {
+    setDraftStart('')
+    setDraftEnd('')
+    setDraftPreset('custom')
+    onClearKeys(['dateRangePreset', 'startDate', 'endDate'])
   }
 
   const commitPreset = (preset: string) => {
@@ -103,13 +174,39 @@ export function DashboardFilters({
     }
   }
 
-  const handleClear = () => {
+  const handleClearAll = () => {
     setDraftStart('')
     setDraftEnd('')
     setDraftPreset('custom')
+    setChipDrafts({})
+    setExpandedChips({})
     onReset()
     onAction?.('clear_filters')
   }
+
+  const applyChipFilter = (filter: FilterDef) => {
+    const draft = chipDrafts[filter.id] ?? ''
+    onChange(filter.id, draft)
+    setExpandedChips((s) => ({ ...s, [filter.id]: false }))
+  }
+
+  const clearChipFilter = (filter: FilterDef) => {
+    setChipDrafts((s) => ({ ...s, [filter.id]: '' }))
+    onClearKeys([filter.id])
+    setExpandedChips((s) => ({ ...s, [filter.id]: false }))
+  }
+
+  const renderTextControl = (filter: FilterDef, value: string, onValue: (v: string) => void) => (
+    <TextField
+      size="small"
+      type="text"
+      label={filter.label}
+      placeholder={filter.placeholder}
+      value={value}
+      onChange={(e) => onValue(e.target.value)}
+      sx={{ minWidth: 200 }}
+    />
+  )
 
   return (
     <Stack
@@ -119,8 +216,10 @@ export function DashboardFilters({
       sx={{ mb: 2, flexWrap: 'wrap' }}
     >
       {filters.map((filter) => {
+        const presentation = filter.presentation ?? 'inline'
+
         if (filter.type === 'dateRangePreset') {
-          const selectValue = hasApply
+          const selectValue = usesDateDraft
             ? draftPreset
             : (values[filter.id] ?? filter.defaultValue ?? 'custom')
           return (
@@ -133,7 +232,7 @@ export function DashboardFilters({
               onChange={(e) => {
                 const preset = e.target.value
                 setDraftPreset(preset)
-                if (!hasApply) commitPreset(preset)
+                if (!usesDateDraft) commitPreset(preset)
               }}
               sx={{ minWidth: 180 }}
             >
@@ -190,79 +289,137 @@ export function DashboardFilters({
         if (filter.type === 'date') {
           const isStart = filter.id === 'startDate'
           const isEnd = filter.id === 'endDate'
-          const draftMode = hasApply && (isStart || isEnd)
+          const draftMode = usesDateDraft && (isStart || isEnd)
           const value = draftMode
             ? isStart
               ? draftStart
               : draftEnd
             : (values[filter.id] ?? '')
           return (
-            <TextField
+            <Box
               key={filter.id}
-              size="small"
-              type="date"
-              label={filter.label}
-              value={value}
-              onChange={(e) => {
-                const v = e.target.value
-                if (draftMode) {
-                  if (isStart) setDraftStart(v)
-                  else setDraftEnd(v)
-                  setDraftPreset('custom')
-                } else {
-                  onChange(filter.id, v)
-                }
-              }}
-              InputLabelProps={{ shrink: true }}
-              sx={{ minWidth: 160 }}
-            />
+              sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+            >
+              <TextField
+                size="small"
+                type="date"
+                label={filter.label}
+                value={value}
+                onChange={(e) => {
+                  const v = e.target.value
+                  if (draftMode) {
+                    if (isStart) setDraftStart(v)
+                    else setDraftEnd(v)
+                    setDraftPreset('custom')
+                  } else {
+                    onChange(filter.id, v)
+                  }
+                }}
+                InputLabelProps={{ shrink: true }}
+                sx={{ minWidth: 160 }}
+              />
+              <FilterControls
+                filter={filter}
+                onApply={hasControl(filter, 'apply') ? applyDateDraft : undefined}
+                onClear={hasControl(filter, 'clear') ? clearDateDraft : undefined}
+              />
+            </Box>
           )
         }
 
+        // text
+        if (presentation === 'chip') {
+          const applied = values[filter.id] ?? ''
+          const expanded = Boolean(expandedChips[filter.id])
+          const draft = chipDrafts[filter.id] ?? applied
+
+          if (!expanded) {
+            return (
+              <Chip
+                key={filter.id}
+                label={applied ? `${filter.label}: ${applied}` : filter.label}
+                variant="outlined"
+                onClick={
+                  filter.expandOnClick !== false
+                    ? () => {
+                        setChipDrafts((s) => ({
+                          ...s,
+                          [filter.id]: values[filter.id] ?? ''
+                        }))
+                        setExpandedChips((s) => ({ ...s, [filter.id]: true }))
+                      }
+                    : undefined
+                }
+                onDelete={
+                  applied && hasControl(filter, 'clear')
+                    ? () => clearChipFilter(filter)
+                    : undefined
+                }
+                deleteIcon={applied ? <CloseIcon /> : undefined}
+                sx={{
+                  height: 36,
+                  cursor: filter.expandOnClick !== false ? 'pointer' : 'default'
+                }}
+              />
+            )
+          }
+
+          return (
+            <Box
+              key={filter.id}
+              sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+            >
+              {renderTextControl(filter, draft, (v) =>
+                setChipDrafts((s) => ({ ...s, [filter.id]: v }))
+              )}
+              <FilterControls
+                filter={filter}
+                onApply={
+                  hasControl(filter, 'apply')
+                    ? () => applyChipFilter(filter)
+                    : undefined
+                }
+                onClear={
+                  hasControl(filter, 'clear')
+                    ? () => clearChipFilter(filter)
+                    : undefined
+                }
+              />
+            </Box>
+          )
+        }
+
+        // inline text — live update (no filter-owned apply)
         return (
-          <TextField
+          <Box
             key={filter.id}
-            size="small"
-            type="text"
-            label={filter.label}
-            placeholder={filter.placeholder}
-            value={values[filter.id] ?? ''}
-            onChange={(e) => onChange(filter.id, e.target.value)}
-            sx={{ minWidth: 200 }}
-          />
+            sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+          >
+            {renderTextControl(filter, values[filter.id] ?? '', (v) =>
+              onChange(filter.id, v)
+            )}
+            <FilterControls
+              filter={filter}
+              onApply={
+                hasControl(filter, 'apply')
+                  ? () => onChange(filter.id, values[filter.id] ?? '')
+                  : undefined
+              }
+              onClear={
+                hasControl(filter, 'clear')
+                  ? () => onClearKeys([filter.id])
+                  : undefined
+              }
+            />
+          </Box>
         )
       })}
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-        {hasApply ? (
-          <Tooltip title="Apply">
-            <IconButton
-              size="small"
-              color="primary"
-              aria-label="Apply date filter"
-              onClick={applyDraft}
-            >
-              <CheckIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        ) : null}
-
-        {clearAction ? (
-          hasApply ? (
-            <Tooltip title={clearAction.label}>
-              <IconButton
-                size="small"
-                aria-label={clearAction.label}
-                onClick={handleClear}
-              >
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          ) : (
-            <Button size="small" onClick={handleClear}>
-              {clearAction.label}
-            </Button>
-          )
+        {clearAllAction ? (
+          <Button size="small" onClick={handleClearAll}>
+            {clearAllAction.label}
+          </Button>
         ) : null}
 
         {otherActions.map((action) => (

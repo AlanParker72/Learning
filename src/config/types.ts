@@ -9,9 +9,15 @@ export type FilterFieldType =
   | 'dateRangePreset'
   | 'dateRangePill'
 
+/** Apply / clear live on the filter def — not separate ACTION_* grants. */
+export type FilterControl = 'apply' | 'clear'
+
+/** How DashboardFilters renders the filter before/while editing. */
+export type FilterPresentation = 'chip' | 'inline'
+
 /**
- * Table column mapping (label + data field) lives in each role’s dashboard config.
- * Visibility is gated by `requiredPermission` (`COLUMN_*`) granted in the same role file.
+ * Table column mapping — listed on a tab ⇒ visible.
+ * No COLUMN_* permission gate; visibility is the role tab’s `columns` array.
  */
 export type ColumnDef = {
   id: string
@@ -20,8 +26,6 @@ export type ColumnDef = {
   /** Key on the flat mapped row (`DashboardTableRow` / mapper output). */
   field: keyof DashboardTableRow | string
   width?: number | string
-  /** Must be granted in the role’s permission file for this column to appear. */
-  requiredPermission: Permission
   /** Optional row action rendered in this column (e.g. Claim). */
   actionId?: string
 }
@@ -49,6 +53,18 @@ export type FilterDef = {
   rangeKeys?: { start: string; end: string }
   /** Optional initial value when the tab/role hydrates filters. */
   defaultValue?: string
+  /**
+   * `chip` = collapsed label until expand; `inline` = always-visible control.
+   * Defaults to `inline`.
+   */
+  presentation?: FilterPresentation
+  /** When true, chip expands to the input + filter-owned controls on click. */
+  expandOnClick?: boolean
+  /**
+   * Filter-owned actions (apply arrow, clear X). Do not require ACTION_APPLY /
+   * ACTION_CLEAR on the role/tab for these.
+   */
+  controls?: readonly FilterControl[]
 }
 
 export type TabDef = {
@@ -63,9 +79,9 @@ export type TabDef = {
    */
   filterPermissions: Permission[]
   /**
-   * Action permission ids for this tab (e.g. filter-bar Apply / Clear, bulk select).
+   * Standalone action permission ids (Claim, Assign, Clear All, bulk select, …).
    * Merged with role-level `DashboardConfig.actionPermissions` (tab wins on same action id).
-   * Runtime: intersect with role.permissions → resolve from action catalog.
+   * Apply/clear for a filter live on the FilterDef (`controls`), not here.
    */
   actionPermissions?: Permission[]
   selectable?: boolean

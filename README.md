@@ -2,7 +2,9 @@
 
 Config-driven dashboard: **Role → role file (permissions + dashboard config) → can() → Zustand → reusable Dashboard → TanStack Query → workflow API**.
 
-Managers see **Unassigned / Team Tasks / Completed**. Analysts see **My Tasks / Unassigned**. Q_* vs O_* share those tab ids; domain comes from `requestGroup` (QC vs Onboarding).
+Managers see **Unassigned / Team Tasks (O: Team Work) / Completed**. Analysts see **My Tasks / Unassigned**. Q_* vs O_* share those tab ids; domain comes from `requestGroup` (QC vs Onboarding).
+
+Filters resolve via `tab.filterPermissions ∩ role.permissions` → catalog (`presentation` / `controls` on the filter def). Columns are listed on the tab only — no `COLUMN_*` permissions.
 
 ## Quick start
 

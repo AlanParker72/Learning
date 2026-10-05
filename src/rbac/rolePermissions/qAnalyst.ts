@@ -14,7 +14,6 @@ import { Permission } from '../permissions'
 /**
  * Q_ANALYST — Quality Control analyst.
  * This file owns both the permission list and this role’s dashboard config.
- * Tabs list filter/action permission ids only — catalog supplies UI metadata.
  */
 
 export const Q_ANALYST_PERMISSIONS = [
@@ -31,19 +30,9 @@ export const Q_ANALYST_PERMISSIONS = [
   Permission.FILTER_APPLICANT_NAME,
   Permission.FILTER_ID,
 
-  // Columns
-  Permission.COLUMN_ID,
-  Permission.COLUMN_APPLICANT,
-  Permission.COLUMN_DAYS_IN_QUEUE,
-  Permission.COLUMN_DAYS_IN_REVIEW,
-  Permission.COLUMN_REVIEW_STATUS,
-  Permission.COLUMN_QC_ANALYST,
-  Permission.COLUMN_BANKER,
-
   // Actions
   Permission.ACTION_CLAIM,
-  Permission.ACTION_ASSIGN_TO_ME,
-  Permission.ACTION_CLEAR_FILTERS
+  Permission.ACTION_ASSIGN_TO_ME
 ] as const satisfies readonly Permission[]
 
 const Q_ANALYST_COLUMNS = [
@@ -73,8 +62,7 @@ export const Q_ANALYST_DASHBOARD: DashboardConfig = {
       label: 'My Tasks',
       requiredPermission: Permission.TAB_MY_TASKS,
       filterPermissions: SEARCH_FILTER_PERMISSIONS,
-      columns: withColumnAction(Q_ANALYST_COLUMNS, 'qcAnalyst', 'claim'),
-      actionPermissions: [Permission.ACTION_CLEAR_FILTERS]
+      columns: withColumnAction(Q_ANALYST_COLUMNS, 'qcAnalyst', 'claim')
     },
     {
       id: 'unassigned',
@@ -82,8 +70,7 @@ export const Q_ANALYST_DASHBOARD: DashboardConfig = {
       requiredPermission: Permission.TAB_UNASSIGNED,
       filterPermissions: SEARCH_FILTER_PERMISSIONS,
       columns: withColumnAction(Q_ANALYST_COLUMNS, 'qcAnalyst', 'assign_to_me'),
-      selectable: true,
-      actionPermissions: [Permission.ACTION_CLEAR_FILTERS]
+      selectable: true
     }
   ],
   actionPermissions: [

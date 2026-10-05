@@ -2,14 +2,21 @@ import { Permission } from '../permissions'
 import type { ActionDef } from '../../config/types'
 
 /**
- * Catalog of all action defs keyed by permission.
- * Tabs / dashboard list permission ids only; runtime intersects with role.permissions and resolves here.
+ * Catalog of standalone action defs keyed by permission.
+ * Apply/clear for a filter live on FilterDef.controls — not here.
  */
 export const ACTION_ASSIGN_RECORDS: ActionDef = {
   id: 'assign_records',
   label: 'Assign Records',
   placement: 'header',
   requiredPermission: Permission.ACTION_ASSIGN_RECORDS
+}
+
+export const ACTION_REASSIGN: ActionDef = {
+  id: 'reassign',
+  label: 'Reassign',
+  placement: 'header',
+  requiredPermission: Permission.ACTION_REASSIGN
 }
 
 export const ACTION_CLAIM: ActionDef = {
@@ -26,23 +33,7 @@ export const ACTION_ASSIGN_TO_ME: ActionDef = {
   requiredPermission: Permission.ACTION_ASSIGN_TO_ME
 }
 
-/** Apply draft start/end (and preset) into the query filters. */
-export const ACTION_APPLY_DATE_FILTER: ActionDef = {
-  id: 'apply_date_filter',
-  label: 'Apply',
-  placement: 'filterBar',
-  requiredPermission: Permission.ACTION_APPLY_DATE_FILTER
-}
-
-/** Clear filters for the active tab (label “Clear filters”). */
-export const ACTION_CLEAR_FILTERS: ActionDef = {
-  id: 'clear_filters',
-  label: 'Clear filters',
-  placement: 'filterBar',
-  requiredPermission: Permission.ACTION_CLEAR_FILTERS
-}
-
-/** Clear filters with “Clear All” label (same action id, distinct permission). */
+/** Global clear of all filter values (O_MANAGER-style “Clear All”). */
 export const ACTION_CLEAR_ALL_FILTERS: ActionDef = {
   id: 'clear_filters',
   label: 'Clear All',
@@ -61,10 +52,9 @@ export const ACTION_BULK_SELECT: ActionDef = {
 /** Permission → action UI metadata. */
 export const ACTION_BY_PERMISSION: Partial<Record<Permission, ActionDef>> = {
   [Permission.ACTION_ASSIGN_RECORDS]: ACTION_ASSIGN_RECORDS,
+  [Permission.ACTION_REASSIGN]: ACTION_REASSIGN,
   [Permission.ACTION_CLAIM]: ACTION_CLAIM,
   [Permission.ACTION_ASSIGN_TO_ME]: ACTION_ASSIGN_TO_ME,
-  [Permission.ACTION_APPLY_DATE_FILTER]: ACTION_APPLY_DATE_FILTER,
-  [Permission.ACTION_CLEAR_FILTERS]: ACTION_CLEAR_FILTERS,
   [Permission.ACTION_CLEAR_ALL_FILTERS]: ACTION_CLEAR_ALL_FILTERS,
   [Permission.ACTION_BULK_SELECT]: ACTION_BULK_SELECT
 }
@@ -72,10 +62,9 @@ export const ACTION_BY_PERMISSION: Partial<Record<Permission, ActionDef>> = {
 /** Menu of every known action — for reference / picking, not a shared role list. */
 export const ALL_ACTIONS: readonly ActionDef[] = [
   ACTION_ASSIGN_RECORDS,
+  ACTION_REASSIGN,
   ACTION_CLAIM,
   ACTION_ASSIGN_TO_ME,
-  ACTION_APPLY_DATE_FILTER,
-  ACTION_CLEAR_FILTERS,
   ACTION_CLEAR_ALL_FILTERS,
   ACTION_BULK_SELECT
 ]

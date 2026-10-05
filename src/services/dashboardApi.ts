@@ -110,6 +110,7 @@ export async function getDashboardData(
     const rows = applyClientFilters(mapWorkflowItemsToRows(items), {
       applicantName: params.filters.applicantName,
       id: params.filters.id,
+      status: params.filters.status,
       startDate: params.filters.startDate,
       endDate: params.filters.endDate
     })
@@ -126,6 +127,7 @@ export async function getDashboardData(
   const rows = applyClientFilters(mapWorkflowItemsToRows(items), {
     applicantName: params.filters.applicantName,
     id: params.filters.id,
+    status: params.filters.status,
     startDate: params.filters.startDate,
     endDate: params.filters.endDate
   })

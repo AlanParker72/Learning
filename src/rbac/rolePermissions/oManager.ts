@@ -14,12 +14,10 @@ import { Permission } from '../permissions'
 /**
  * O_MANAGER — Onboarding manager.
  * This file owns both the permission list and this role’s dashboard config.
- * Domain (ONBOARDING) comes from requestGroup mapping, not extra permissions.
- * Tabs list filter/action permission ids only — catalog supplies UI metadata.
  *
- * Completed filters (screenshot 2): Select preset + date-range pill + Clear All.
- * Distinct from Q_MANAGER Completed (start/end + apply/clear icons).
- * Month default lives on FILTER_DATE_RANGE_PILL in the catalog.
+ * Unassigned: Applicant Name + ID# + Status (inline).
+ * Team Work: name inline; ID Number chip→expand + apply/clear; Status.
+ * Completed: preset + date-range pill + Clear All (global action).
  */
 
 export const O_MANAGER_PERMISSIONS = [
@@ -36,20 +34,12 @@ export const O_MANAGER_PERMISSIONS = [
   // Filters (full set this role may ever use)
   Permission.FILTER_APPLICANT_NAME,
   Permission.FILTER_ID,
+  Permission.FILTER_ID_NUMBER,
+  Permission.FILTER_STATUS,
   Permission.FILTER_DATE_RANGE_PRESET,
   Permission.FILTER_DATE_RANGE_PILL,
 
-  // Columns
-  Permission.COLUMN_ID,
-  Permission.COLUMN_APPLICANT,
-  Permission.COLUMN_DAYS_IN_QUEUE,
-  Permission.COLUMN_DAYS_IN_REVIEW,
-  Permission.COLUMN_DATE_COMPLETED,
-  Permission.COLUMN_REVIEW_STATUS,
-  Permission.COLUMN_OBS_ANALYST,
-  Permission.COLUMN_BANKER,
-
-  // Actions
+  // Actions (standalone)
   Permission.ACTION_ASSIGN_RECORDS,
   Permission.ACTION_BULK_SELECT,
   Permission.ACTION_CLEAR_ALL_FILTERS
@@ -74,12 +64,21 @@ const O_MANAGER_COMPLETED_COLUMNS = [
   COL_BANKER
 ]
 
-const SEARCH_FILTER_PERMISSIONS = [
+/** Unassigned: name, ID#, Status — all inline. */
+const UNASSIGNED_FILTER_PERMISSIONS = [
   Permission.FILTER_APPLICANT_NAME,
-  Permission.FILTER_ID
+  Permission.FILTER_ID,
+  Permission.FILTER_STATUS
 ]
 
-/** Screenshot 2: select + active date-range pill (month default in catalog). */
+/** Team Work: name inline; ID Number chip; Status. */
+const TEAM_WORK_FILTER_PERMISSIONS = [
+  Permission.FILTER_APPLICANT_NAME,
+  Permission.FILTER_ID_NUMBER,
+  Permission.FILTER_STATUS
+]
+
+/** Completed: select + active date-range pill (month default in catalog). */
 const COMPLETED_FILTER_PERMISSIONS = [
   Permission.FILTER_DATE_RANGE_PRESET,
   Permission.FILTER_DATE_RANGE_PILL
@@ -96,7 +95,7 @@ export const O_MANAGER_DASHBOARD: DashboardConfig = {
       id: 'unassigned',
       label: 'Unassigned',
       requiredPermission: Permission.TAB_UNASSIGNED,
-      filterPermissions: SEARCH_FILTER_PERMISSIONS,
+      filterPermissions: UNASSIGNED_FILTER_PERMISSIONS,
       columns: O_MANAGER_QUEUE_COLUMNS,
       selectable: true,
       actionPermissions: [
@@ -106,9 +105,9 @@ export const O_MANAGER_DASHBOARD: DashboardConfig = {
     },
     {
       id: 'team_tasks',
-      label: 'Team Tasks',
+      label: 'Team Work',
       requiredPermission: Permission.TAB_TEAM_TASKS,
-      filterPermissions: SEARCH_FILTER_PERMISSIONS,
+      filterPermissions: TEAM_WORK_FILTER_PERMISSIONS,
       columns: O_MANAGER_QUEUE_COLUMNS,
       selectable: true,
       actionPermissions: [
