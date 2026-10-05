@@ -1,7 +1,7 @@
 import { Permission } from './permissions'
 import { Role } from './roles'
 
-const QC_TABLE_COLUMNS: readonly Permission[] = [
+const TABLE_COLUMNS: readonly Permission[] = [
   Permission.COLUMN_ID,
   Permission.COLUMN_APPLICANT,
   Permission.COLUMN_DAYS_IN_QUEUE,
@@ -12,49 +12,58 @@ const QC_TABLE_COLUMNS: readonly Permission[] = [
   Permission.COLUMN_BANKER
 ]
 
+const MANAGER_TABS: readonly Permission[] = [
+  Permission.TAB_UNASSIGNED,
+  Permission.TAB_TEAM_TASKS,
+  Permission.TAB_COMPLETED
+]
+
+const ANALYST_TABS: readonly Permission[] = [
+  Permission.TAB_MY_TASKS,
+  Permission.TAB_UNASSIGNED
+]
+
+const SHARED_DASHBOARD: readonly Permission[] = [
+  Permission.DASHBOARD_VIEW,
+  Permission.FILTER_APPLICANT_NAME,
+  Permission.FILTER_ID,
+  Permission.WIDGET_TABLE,
+  ...TABLE_COLUMNS
+]
+
 /**
  * Role → permission map.
- * Adding a role is primarily a new row here + a `dashboardConfig` entry —
- * not a new page or `role ===` branches in components.
+ *
+ * Tabs a role sees = which `dashboard.tab.*` permissions are listed here.
+ * UI: `config.tabs.filter(t => can(t.requiredPermission))`.
+ * Mocks: same check before returning rows for a tab.
+ *
+ * Adding a role: new row here + roles.ts + (optional) config entries for new tabs/actions.
  */
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
-  [Role.O_MANAGER]: [
-    Permission.DASHBOARD_VIEW,
-    Permission.TAB_OVERVIEW,
-    Permission.FILTER_APPLICANT_NAME,
-    Permission.FILTER_ID,
-    Permission.WIDGET_TABLE,
-    ...QC_TABLE_COLUMNS
-  ],
-  [Role.O_ANALYST]: [
-    Permission.DASHBOARD_VIEW,
-    Permission.TAB_OVERVIEW,
-    Permission.FILTER_APPLICANT_NAME,
-    Permission.FILTER_ID,
-    Permission.WIDGET_TABLE,
-    ...QC_TABLE_COLUMNS
-  ],
   [Role.Q_MANAGER]: [
-    Permission.DASHBOARD_VIEW,
-    Permission.TAB_UNASSIGNED,
-    Permission.TAB_TEAM_TASKS,
-    Permission.TAB_COMPLETED,
-    Permission.FILTER_APPLICANT_NAME,
-    Permission.FILTER_ID,
-    Permission.ACTION_ASSIGN_RECORDS,
-    Permission.WIDGET_TABLE,
-    ...QC_TABLE_COLUMNS
+    ...SHARED_DASHBOARD,
+    ...MANAGER_TABS,
+    Permission.ACTION_ASSIGN_RECORDS
   ],
   [Role.Q_ANALYST]: [
-    Permission.DASHBOARD_VIEW,
-    Permission.TAB_MY_TASKS,
-    Permission.TAB_UNASSIGNED,
-    Permission.FILTER_APPLICANT_NAME,
-    Permission.FILTER_ID,
+    ...SHARED_DASHBOARD,
+    ...ANALYST_TABS,
     Permission.ACTION_CLAIM,
-    Permission.ACTION_ASSIGN_TO_ME,
-    Permission.WIDGET_TABLE,
-    ...QC_TABLE_COLUMNS
+    Permission.ACTION_ASSIGN_TO_ME
+  ],
+  /** Same tab set as Q_MANAGER; domain (Onboarding) comes from requestGroup, not extra tabs. */
+  [Role.O_MANAGER]: [
+    ...SHARED_DASHBOARD,
+    ...MANAGER_TABS,
+    Permission.ACTION_ASSIGN_RECORDS
+  ],
+  /** Same tab set as Q_ANALYST; domain (Onboarding) comes from requestGroup. */
+  [Role.O_ANALYST]: [
+    ...SHARED_DASHBOARD,
+    ...ANALYST_TABS,
+    Permission.ACTION_CLAIM,
+    Permission.ACTION_ASSIGN_TO_ME
   ]
 }
 
@@ -67,4 +76,8 @@ export function permissionsForRoles(roles: readonly Role[]): Set<Permission> {
     }
   }
   return set
+}
+
+export function roleHasPermission(role: Role, permission: Permission): boolean {
+  return (ROLE_PERMISSIONS[role] ?? []).includes(permission)
 }

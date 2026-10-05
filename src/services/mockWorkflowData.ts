@@ -1,7 +1,157 @@
-import type { Role } from '../rbac/roles'
+import {
+  isDashboardTabId,
+  TAB_REQUIRED_PERMISSION,
+  type DashboardTabId
+} from '../rbac/permissions'
+import { roleHasPermission } from '../rbac/rolePermissions'
+import { Role } from '../rbac/roles'
 import type { WorkflowTaskItem } from '../types/workflow'
 
-type MockItem = WorkflowTaskItem & { _tabs: string[] }
+type RequestDomain = 'QC' | 'ONBOARDING'
+
+/** Compact seed — one row description, expanded to WorkflowTaskItem at read time. */
+type MockSeed = {
+  id: string
+  applicant: string
+  obsAnalyst?: string
+  qcAnalyst?: string
+  banker?: string
+  reviewStatus: string
+  /** Days ago for process `startedAt`. */
+  startedDaysAgo: number
+  /** Days ago for activeTask `createdAt`. */
+  taskDaysAgo: number
+  claimDaysAgo?: number | null
+  endDaysAgo?: number | null
+  assignee?: string | null
+  state: string
+  status: string
+  description?: string
+  priority?: number
+}
+
+/**
+ * Shared mock pool keyed by **tab id** (not by role).
+ * Roles only see a tab when `ROLE_PERMISSIONS` includes that tab’s permission.
+ * Domain (QC vs Onboarding) is applied when materializing rows for a role.
+ */
+const MOCK_SEEDS_BY_TAB: Record<DashboardTabId, readonly MockSeed[]> = {
+  unassigned: [
+    {
+      id: '1001',
+      applicant: 'Jordan Lee',
+      obsAnalyst: 'A. Chen',
+      banker: 'J. Rivera',
+      reviewStatus: 'Pending QC',
+      startedDaysAgo: 5,
+      taskDaysAgo: 4,
+      assignee: null,
+      state: 'CREATED',
+      status: 'ACTIVE',
+      description: 'Unassigned review',
+      priority: 50
+    },
+    {
+      id: '1002',
+      applicant: 'Sam Patel',
+      obsAnalyst: 'L. Nguyen',
+      banker: 'S. Patel',
+      reviewStatus: 'Pending QC',
+      startedDaysAgo: 8,
+      taskDaysAgo: 7,
+      assignee: null,
+      state: 'CREATED',
+      status: 'ACTIVE',
+      description: 'Unassigned review',
+      priority: 40
+    },
+    {
+      id: '2002',
+      applicant: 'Drew Nash',
+      obsAnalyst: 'L. Nguyen',
+      banker: 'S. Patel',
+      reviewStatus: 'Pending QC',
+      startedDaysAgo: 3,
+      taskDaysAgo: 2,
+      assignee: null,
+      state: 'CREATED',
+      status: 'ACTIVE',
+      description: 'Unassigned pool',
+      priority: 45
+    }
+  ],
+  team_tasks: [
+    {
+      id: '1003',
+      applicant: 'Morgan Blake',
+      obsAnalyst: 'A. Chen',
+      qcAnalyst: 'M. Torres',
+      banker: 'K. Diaz',
+      reviewStatus: 'In Review',
+      startedDaysAgo: 10,
+      taskDaysAgo: 9,
+      claimDaysAgo: 3,
+      assignee: 'M. Torres',
+      state: 'IN_PROGRESS',
+      status: 'ACTIVE',
+      description: 'In-progress team task',
+      priority: 60
+    },
+    {
+      id: '1004',
+      applicant: 'Riley Quinn',
+      obsAnalyst: 'L. Nguyen',
+      qcAnalyst: 'C. Park',
+      banker: 'M. Brooks',
+      reviewStatus: 'In Review',
+      startedDaysAgo: 12,
+      taskDaysAgo: 11,
+      claimDaysAgo: 2,
+      assignee: 'C. Park',
+      state: 'IN_PROGRESS',
+      status: 'ACTIVE',
+      description: 'In-progress team task',
+      priority: 55
+    }
+  ],
+  my_tasks: [
+    {
+      id: '2001',
+      applicant: 'Casey Wong',
+      obsAnalyst: 'A. Chen',
+      qcAnalyst: 'You',
+      banker: 'T. Wells',
+      reviewStatus: 'In Review',
+      startedDaysAgo: 6,
+      taskDaysAgo: 5,
+      claimDaysAgo: 4,
+      assignee: 'You',
+      state: 'IN_PROGRESS',
+      status: 'ACTIVE',
+      description: 'My task',
+      priority: 50
+    }
+  ],
+  completed: [
+    {
+      id: '0990',
+      applicant: 'Avery Kim',
+      obsAnalyst: 'A. Chen',
+      qcAnalyst: 'M. Torres',
+      banker: 'J. Rivera',
+      reviewStatus: 'Completed',
+      startedDaysAgo: 20,
+      taskDaysAgo: 18,
+      claimDaysAgo: 15,
+      endDaysAgo: 1,
+      assignee: 'M. Torres',
+      state: 'COMPLETED',
+      status: 'COMPLETED',
+      description: 'Completed',
+      priority: 30
+    }
+  ]
+}
 
 function daysAgo(days: number): string {
   const d = new Date()
@@ -9,381 +159,126 @@ function daysAgo(days: number): string {
   return d.toISOString()
 }
 
-function item(
-  partial: Omit<WorkflowTaskItem, 'activeTask'> & {
-    activeTask: NonNullable<WorkflowTaskItem['activeTask']>
-    _tabs: string[]
+function domainPrefix(domain: RequestDomain): string {
+  return domain === 'QC' ? 'QC' : 'ONB'
+}
+
+function processKey(domain: RequestDomain): string {
+  return domain === 'QC' ? 'qc-review' : 'onboarding'
+}
+
+function taskName(domain: RequestDomain): string {
+  return domain === 'QC' ? 'QC Review' : 'OBS Review'
+}
+
+function candidateGroup(domain: RequestDomain): string {
+  return domain === 'QC' ? 'QC_ANALYST' : 'O_ANALYST'
+}
+
+function reviewStatusForDomain(status: string, domain: RequestDomain): string {
+  if (domain === 'ONBOARDING' && status === 'Pending QC') return 'Pending OBS'
+  return status
+}
+
+function buildItem(
+  seed: MockSeed,
+  domain: RequestDomain,
+  tab: DashboardTabId
+): WorkflowTaskItem {
+  const prefix = domainPrefix(domain)
+  const proc = processKey(domain)
+  const pi = `pi-${prefix.toLowerCase()}-${seed.id}`
+  const taskId = `task-${prefix.toLowerCase()}-${seed.id}`
+  const endTime =
+    seed.endDaysAgo == null ? null : daysAgo(seed.endDaysAgo)
+  const durationInMillis =
+    endTime == null
+      ? null
+      : (seed.startedDaysAgo - (seed.endDaysAgo ?? 0)) * 24 * 60 * 60 * 1000
+
+  const variables: Record<string, string> = {
+    applicantName: seed.applicant,
+    reviewStatus: reviewStatusForDomain(seed.reviewStatus, domain),
+    ...(seed.obsAnalyst ? { obsAnalyst: seed.obsAnalyst } : {}),
+    ...(seed.qcAnalyst ? { qcAnalyst: seed.qcAnalyst } : {}),
+    ...(seed.banker ? { banker: seed.banker } : {})
   }
-): MockItem {
-  return partial
+  if (tab === 'completed') {
+    variables.daysInQueue = '5'
+    variables.daysInReview = '14'
+  }
+
+  return {
+    processInstanceId: pi,
+    name: `${taskName(domain)} — ${seed.applicant}`,
+    businessKey: `${prefix}-${seed.id}`,
+    processDefinitionKey: proc,
+    processDefinitionId: `${proc}:1`,
+    deploymentId: domain === 'QC' ? 'dep-1' : 'dep-o',
+    status: seed.status,
+    createdBy: 'system',
+    startedAt: daysAgo(seed.startedDaysAgo),
+    endTime,
+    durationInMillis,
+    activeTask: {
+      taskId,
+      taskName: taskName(domain),
+      taskDefinitionKey: domain === 'QC' ? 'qcReview' : 'obsReview',
+      executionId: `ex-${seed.id}`,
+      description: seed.description ?? '',
+      assignee: seed.assignee ?? null,
+      processInstanceId: pi,
+      processDefinitionId: `${proc}:1`,
+      candidateGroups: [candidateGroup(domain)],
+      formKey: null,
+      processState: seed.status === 'COMPLETED' ? 'COMPLETED' : 'ACTIVE',
+      priority: seed.priority ?? 50,
+      createdAt: daysAgo(seed.taskDaysAgo),
+      dueDate: null,
+      claimTime:
+        seed.claimDaysAgo == null ? null : daysAgo(seed.claimDaysAgo),
+      owner: null,
+      state: seed.state,
+      category: domain,
+      tenantId: null,
+      variables
+    }
+  }
+}
+
+/** Aligns with `requestGroupForRole` in dashboardApi (Q_* → QC, O_* → ONBOARDING). */
+function domainForRole(role: Role): RequestDomain {
+  switch (role) {
+    case Role.O_MANAGER:
+    case Role.O_ANALYST:
+      return 'ONBOARDING'
+    default:
+      return 'QC'
+  }
+}
+
+function roleCanAccessTab(role: Role, tab: string): tab is DashboardTabId {
+  if (!isDashboardTabId(tab)) return false
+  return roleHasPermission(role, TAB_REQUIRED_PERMISSION[tab])
 }
 
 /**
- * Realistic mock workflow tasks shaped like the API response.
- * Scoped per role — never one mega-list filtered only in the UI by role.
+ * Rows for one tab if the role’s permission array includes that tab’s permission.
+ * Otherwise empty. Shared seeds + light domain (QC / Onboarding) variation.
  */
-const Q_MANAGER_ITEMS: MockItem[] = [
-  item({
-    processInstanceId: 'pi-qc-1001',
-    name: 'QC Review — Jordan Lee',
-    businessKey: 'QC-1001',
-    processDefinitionKey: 'qc-review',
-    processDefinitionId: 'qc-review:1',
-    deploymentId: 'dep-1',
-    status: 'ACTIVE',
-    createdBy: 'system',
-    startedAt: daysAgo(5),
-    endTime: null,
-    durationInMillis: null,
-    activeTask: {
-      taskId: 'task-qc-1001',
-      taskName: 'QC Review',
-      taskDefinitionKey: 'qcReview',
-      executionId: 'ex-1001',
-      description: 'Unassigned QC review',
-      assignee: null,
-      processInstanceId: 'pi-qc-1001',
-      processDefinitionId: 'qc-review:1',
-      candidateGroups: ['QC_ANALYST'],
-      formKey: null,
-      processState: 'ACTIVE',
-      priority: 50,
-      createdAt: daysAgo(4),
-      dueDate: null,
-      claimTime: null,
-      owner: null,
-      state: 'CREATED',
-      category: 'QC',
-      tenantId: null,
-      variables: {
-        applicantName: 'Jordan Lee',
-        obsAnalyst: 'A. Chen',
-        banker: 'J. Rivera',
-        reviewStatus: 'Pending QC'
-      }
-    },
-    _tabs: ['unassigned']
-  }),
-  item({
-    processInstanceId: 'pi-qc-1002',
-    name: 'QC Review — Sam Patel',
-    businessKey: 'QC-1002',
-    processDefinitionKey: 'qc-review',
-    processDefinitionId: 'qc-review:1',
-    deploymentId: 'dep-1',
-    status: 'ACTIVE',
-    createdBy: 'system',
-    startedAt: daysAgo(8),
-    endTime: null,
-    durationInMillis: null,
-    activeTask: {
-      taskId: 'task-qc-1002',
-      taskName: 'QC Review',
-      taskDefinitionKey: 'qcReview',
-      executionId: 'ex-1002',
-      description: 'Unassigned QC review',
-      assignee: null,
-      processInstanceId: 'pi-qc-1002',
-      processDefinitionId: 'qc-review:1',
-      candidateGroups: ['QC_ANALYST'],
-      formKey: null,
-      processState: 'ACTIVE',
-      priority: 40,
-      createdAt: daysAgo(7),
-      dueDate: null,
-      claimTime: null,
-      owner: null,
-      state: 'CREATED',
-      category: 'QC',
-      tenantId: null,
-      variables: {
-        applicantName: 'Sam Patel',
-        obsAnalyst: 'L. Nguyen',
-        banker: 'S. Patel',
-        reviewStatus: 'Pending QC'
-      }
-    },
-    _tabs: ['unassigned']
-  }),
-  item({
-    processInstanceId: 'pi-qc-1003',
-    name: 'QC Review — Morgan Blake',
-    businessKey: 'QC-1003',
-    processDefinitionKey: 'qc-review',
-    processDefinitionId: 'qc-review:1',
-    deploymentId: 'dep-1',
-    status: 'ACTIVE',
-    createdBy: 'system',
-    startedAt: daysAgo(10),
-    endTime: null,
-    durationInMillis: null,
-    activeTask: {
-      taskId: 'task-qc-1003',
-      taskName: 'QC Review',
-      taskDefinitionKey: 'qcReview',
-      executionId: 'ex-1003',
-      description: 'In-progress team task',
-      assignee: 'M. Torres',
-      processInstanceId: 'pi-qc-1003',
-      processDefinitionId: 'qc-review:1',
-      candidateGroups: ['QC_ANALYST'],
-      formKey: null,
-      processState: 'ACTIVE',
-      priority: 60,
-      createdAt: daysAgo(9),
-      dueDate: null,
-      claimTime: daysAgo(3),
-      owner: null,
-      state: 'IN_PROGRESS',
-      category: 'QC',
-      tenantId: null,
-      variables: {
-        applicantName: 'Morgan Blake',
-        obsAnalyst: 'A. Chen',
-        qcAnalyst: 'M. Torres',
-        banker: 'K. Diaz',
-        reviewStatus: 'In Review'
-      }
-    },
-    _tabs: ['team_tasks']
-  }),
-  item({
-    processInstanceId: 'pi-qc-1004',
-    name: 'QC Review — Riley Quinn',
-    businessKey: 'QC-1004',
-    processDefinitionKey: 'qc-review',
-    processDefinitionId: 'qc-review:1',
-    deploymentId: 'dep-1',
-    status: 'ACTIVE',
-    createdBy: 'system',
-    startedAt: daysAgo(12),
-    endTime: null,
-    durationInMillis: null,
-    activeTask: {
-      taskId: 'task-qc-1004',
-      taskName: 'QC Review',
-      taskDefinitionKey: 'qcReview',
-      executionId: 'ex-1004',
-      description: 'In-progress team task',
-      assignee: 'C. Park',
-      processInstanceId: 'pi-qc-1004',
-      processDefinitionId: 'qc-review:1',
-      candidateGroups: ['QC_ANALYST'],
-      formKey: null,
-      processState: 'ACTIVE',
-      priority: 55,
-      createdAt: daysAgo(11),
-      dueDate: null,
-      claimTime: daysAgo(2),
-      owner: null,
-      state: 'IN_PROGRESS',
-      category: 'QC',
-      tenantId: null,
-      variables: {
-        applicantName: 'Riley Quinn',
-        obsAnalyst: 'L. Nguyen',
-        qcAnalyst: 'C. Park',
-        banker: 'M. Brooks',
-        reviewStatus: 'In Review'
-      }
-    },
-    _tabs: ['team_tasks']
-  }),
-  item({
-    processInstanceId: 'pi-qc-0990',
-    name: 'QC Review — Avery Kim',
-    businessKey: 'QC-0990',
-    processDefinitionKey: 'qc-review',
-    processDefinitionId: 'qc-review:1',
-    deploymentId: 'dep-1',
-    status: 'COMPLETED',
-    createdBy: 'system',
-    startedAt: daysAgo(20),
-    endTime: daysAgo(1),
-    durationInMillis: 19 * 24 * 60 * 60 * 1000,
-    activeTask: {
-      taskId: 'task-qc-0990',
-      taskName: 'QC Review',
-      taskDefinitionKey: 'qcReview',
-      executionId: 'ex-0990',
-      description: 'Completed',
-      assignee: 'M. Torres',
-      processInstanceId: 'pi-qc-0990',
-      processDefinitionId: 'qc-review:1',
-      candidateGroups: ['QC_ANALYST'],
-      formKey: null,
-      processState: 'COMPLETED',
-      priority: 30,
-      createdAt: daysAgo(18),
-      dueDate: null,
-      claimTime: daysAgo(15),
-      owner: null,
-      state: 'COMPLETED',
-      category: 'QC',
-      tenantId: null,
-      variables: {
-        applicantName: 'Avery Kim',
-        obsAnalyst: 'A. Chen',
-        qcAnalyst: 'M. Torres',
-        banker: 'J. Rivera',
-        reviewStatus: 'Completed',
-        daysInQueue: '5',
-        daysInReview: '14'
-      }
-    },
-    _tabs: ['completed']
-  })
-]
-
-const Q_ANALYST_ITEMS: MockItem[] = [
-  item({
-    processInstanceId: 'pi-qa-2001',
-    name: 'QC Review — Casey Wong',
-    businessKey: 'QC-2001',
-    processDefinitionKey: 'qc-review',
-    processDefinitionId: 'qc-review:1',
-    deploymentId: 'dep-1',
-    status: 'ACTIVE',
-    createdBy: 'system',
-    startedAt: daysAgo(6),
-    endTime: null,
-    durationInMillis: null,
-    activeTask: {
-      taskId: 'task-qa-2001',
-      taskName: 'QC Review',
-      taskDefinitionKey: 'qcReview',
-      executionId: 'ex-2001',
-      description: 'My task',
-      assignee: 'You',
-      processInstanceId: 'pi-qa-2001',
-      processDefinitionId: 'qc-review:1',
-      candidateGroups: ['QC_ANALYST'],
-      formKey: null,
-      processState: 'ACTIVE',
-      priority: 50,
-      createdAt: daysAgo(5),
-      dueDate: null,
-      claimTime: daysAgo(4),
-      owner: null,
-      state: 'IN_PROGRESS',
-      category: 'QC',
-      tenantId: null,
-      variables: {
-        applicantName: 'Casey Wong',
-        obsAnalyst: 'A. Chen',
-        qcAnalyst: 'You',
-        banker: 'T. Wells',
-        reviewStatus: 'In Review'
-      }
-    },
-    _tabs: ['my_tasks']
-  }),
-  item({
-    processInstanceId: 'pi-qa-2002',
-    name: 'QC Review — Drew Nash',
-    businessKey: 'QC-2002',
-    processDefinitionKey: 'qc-review',
-    processDefinitionId: 'qc-review:1',
-    deploymentId: 'dep-1',
-    status: 'ACTIVE',
-    createdBy: 'system',
-    startedAt: daysAgo(3),
-    endTime: null,
-    durationInMillis: null,
-    activeTask: {
-      taskId: 'task-qa-2002',
-      taskName: 'QC Review',
-      taskDefinitionKey: 'qcReview',
-      executionId: 'ex-2002',
-      description: 'Unassigned pool',
-      assignee: null,
-      processInstanceId: 'pi-qa-2002',
-      processDefinitionId: 'qc-review:1',
-      candidateGroups: ['QC_ANALYST'],
-      formKey: null,
-      processState: 'ACTIVE',
-      priority: 45,
-      createdAt: daysAgo(2),
-      dueDate: null,
-      claimTime: null,
-      owner: null,
-      state: 'CREATED',
-      category: 'QC',
-      tenantId: null,
-      variables: {
-        applicantName: 'Drew Nash',
-        obsAnalyst: 'L. Nguyen',
-        banker: 'S. Patel',
-        reviewStatus: 'Pending QC'
-      }
-    },
-    _tabs: ['unassigned']
-  })
-]
-
-const O_STUB_ITEMS: MockItem[] = [
-  item({
-    processInstanceId: 'pi-o-3001',
-    name: 'Onboarding — Stub Applicant',
-    businessKey: 'ONB-3001',
-    processDefinitionKey: 'onboarding',
-    processDefinitionId: 'onboarding:1',
-    deploymentId: 'dep-o',
-    status: 'ACTIVE',
-    createdBy: 'system',
-    startedAt: daysAgo(2),
-    endTime: null,
-    durationInMillis: null,
-    activeTask: {
-      taskId: 'task-o-3001',
-      taskName: 'OBS Review',
-      taskDefinitionKey: 'obsReview',
-      executionId: 'ex-3001',
-      description: 'O_* stub row',
-      assignee: null,
-      processInstanceId: 'pi-o-3001',
-      processDefinitionId: 'onboarding:1',
-      candidateGroups: ['O_ANALYST'],
-      formKey: null,
-      processState: 'ACTIVE',
-      priority: 40,
-      createdAt: daysAgo(1),
-      dueDate: null,
-      claimTime: null,
-      owner: null,
-      state: 'CREATED',
-      category: 'ONBOARDING',
-      tenantId: null,
-      variables: {
-        applicantName: 'Stub Applicant',
-        obsAnalyst: '',
-        banker: 'J. Rivera',
-        reviewStatus: 'Unassigned'
-      }
-    },
-    _tabs: ['overview']
-  })
-]
-
-export const MOCK_WORKFLOW_BY_ROLE: Record<Role, MockItem[]> = {
-  Q_MANAGER: Q_MANAGER_ITEMS,
-  Q_ANALYST: Q_ANALYST_ITEMS,
-  O_MANAGER: O_STUB_ITEMS,
-  O_ANALYST: O_STUB_ITEMS
-}
-
 export function mockItemsForTab(role: Role, tab: string): WorkflowTaskItem[] {
-  return (MOCK_WORKFLOW_BY_ROLE[role] ?? [])
-    .filter((row) => row._tabs.includes(tab))
-    .map(({ _tabs: _ignored, ...rest }) => rest)
+  if (!roleCanAccessTab(role, tab)) return []
+  const seeds = MOCK_SEEDS_BY_TAB[tab] ?? []
+  const domain = domainForRole(role)
+  return seeds.map((seed) => buildItem(seed, domain, tab))
 }
 
+/** Counts only for tabs the role can see. */
 export function mockTabCounts(role: Role): Record<string, number> {
   const counts: Record<string, number> = {}
-  for (const row of MOCK_WORKFLOW_BY_ROLE[role] ?? []) {
-    for (const tab of row._tabs) {
-      counts[tab] = (counts[tab] ?? 0) + 1
-    }
+  for (const tab of Object.keys(TAB_REQUIRED_PERMISSION) as DashboardTabId[]) {
+    if (!roleCanAccessTab(role, tab)) continue
+    counts[tab] = MOCK_SEEDS_BY_TAB[tab].length
   }
   return counts
 }

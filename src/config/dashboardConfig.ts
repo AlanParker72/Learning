@@ -1,8 +1,8 @@
-import { Permission } from '../rbac/permissions'
+import { Permission, TAB_REQUIRED_PERMISSION } from '../rbac/permissions'
 import { Role } from '../rbac/roles'
 import type { ActionDef, ColumnDef, DashboardConfig, FilterDef, TabDef } from './types'
 
-const QC_FILTERS: FilterDef[] = [
+const FILTERS: FilterDef[] = [
   {
     id: 'applicantName',
     label: 'Applicant Name',
@@ -19,8 +19,8 @@ const QC_FILTERS: FilterDef[] = [
   }
 ]
 
-/** Quality Control Requests columns (screenshot). */
-const QC_COLUMNS: ColumnDef[] = [
+/** Shared table columns — each gated by its own permission. */
+const COLUMNS: ColumnDef[] = [
   {
     id: 'idNumber',
     label: 'ID #',
@@ -72,16 +72,53 @@ const QC_COLUMNS: ColumnDef[] = [
 ]
 
 function tab(
-  id: string,
+  id: keyof typeof TAB_REQUIRED_PERMISSION,
   label: string,
-  requiredPermission: Permission,
   columns: ColumnDef[],
   selectable = false
 ): TabDef {
-  return { id, label, requiredPermission, columns, selectable }
+  return {
+    id,
+    label,
+    requiredPermission: TAB_REQUIRED_PERMISSION[id],
+    columns,
+    selectable
+  }
 }
 
-const Q_MANAGER_ACTIONS: ActionDef[] = [
+/** Catalog of tabs. Roles see a subset via `ROLE_PERMISSIONS` + `filterByPermission`. */
+const TABS = {
+  unassigned: tab('unassigned', 'Unassigned', COLUMNS, true),
+  team_tasks: tab('team_tasks', 'Team Tasks', COLUMNS, true),
+  my_tasks: tab('my_tasks', 'My Tasks', COLUMNS),
+  completed: tab('completed', 'Completed', COLUMNS)
+} as const
+
+function withColumnAction(columns: ColumnDef[], columnId: string, actionId: string): ColumnDef[] {
+  return columns.map((c) => (c.id === columnId ? { ...c, actionId } : c))
+}
+
+const MANAGER_TABS: TabDef[] = [
+  TABS.unassigned,
+  TABS.team_tasks,
+  TABS.completed
+]
+
+const ANALYST_TABS: TabDef[] = [
+  tab(
+    'my_tasks',
+    'My Tasks',
+    withColumnAction(COLUMNS, 'qcAnalyst', 'claim')
+  ),
+  tab(
+    'unassigned',
+    'Unassigned',
+    withColumnAction(COLUMNS, 'qcAnalyst', 'assign_to_me'),
+    true
+  )
+]
+
+const MANAGER_ACTIONS: ActionDef[] = [
   {
     id: 'assign_records',
     label: 'Assign Records',
@@ -90,7 +127,7 @@ const Q_MANAGER_ACTIONS: ActionDef[] = [
   }
 ]
 
-const Q_ANALYST_ACTIONS: ActionDef[] = [
+const ANALYST_ACTIONS: ActionDef[] = [
   {
     id: 'claim',
     label: 'Claim',
@@ -107,61 +144,46 @@ const Q_ANALYST_ACTIONS: ActionDef[] = [
 
 /**
  * Per-role dashboard layout.
- * Visibility is further gated by `requiredPermission` on each item.
  *
- * Primary product mapping: Q_MANAGER (Quality Control Requests screenshot).
- * Q_ANALYST: My Tasks / Unassigned. O_* keep thin stubs.
+ * Visible tabs = `tabs.filter(t => can(t.requiredPermission))`.
+ * Which permissions a role has lives only in `rolePermissions.ts`.
+ *
+ * Managers: Unassigned / Team Tasks / Completed.
+ * Analysts: My Tasks / Unassigned.
+ * Q_* vs O_* differ by title/domain (requestGroup), not by tab ids.
  */
 export const dashboardConfigByRole: Record<Role, DashboardConfig> = {
   [Role.Q_MANAGER]: {
     title: 'Quality Control Requests',
     subtitle: 'QC Analyst Manager',
     defaultTab: 'unassigned',
-    tabs: [
-      tab('unassigned', 'Unassigned', Permission.TAB_UNASSIGNED, QC_COLUMNS, true),
-      tab('team_tasks', 'Team Tasks', Permission.TAB_TEAM_TASKS, QC_COLUMNS, true),
-      tab('completed', 'Completed', Permission.TAB_COMPLETED, QC_COLUMNS)
-    ],
-    filters: QC_FILTERS,
-    actions: Q_MANAGER_ACTIONS
+    tabs: MANAGER_TABS,
+    filters: FILTERS,
+    actions: MANAGER_ACTIONS
   },
-
   [Role.Q_ANALYST]: {
     title: 'Quality Control Requests',
     subtitle: 'QC Analyst',
     defaultTab: 'my_tasks',
-    tabs: [
-      tab('my_tasks', 'My Tasks', Permission.TAB_MY_TASKS, [
-        ...QC_COLUMNS.map((c) =>
-          c.id === 'qcAnalyst' ? { ...c, actionId: 'claim' } : c
-        )
-      ]),
-      tab('unassigned', 'Unassigned', Permission.TAB_UNASSIGNED, [
-        ...QC_COLUMNS.map((c) =>
-          c.id === 'qcAnalyst' ? { ...c, actionId: 'assign_to_me' } : c
-        )
-      ])
-    ],
-    filters: QC_FILTERS,
-    actions: Q_ANALYST_ACTIONS
+    tabs: ANALYST_TABS,
+    filters: FILTERS,
+    actions: ANALYST_ACTIONS
   },
-
-  /** Thin stubs — preserve RBAC skeleton until O_* screenshots arrive. */
   [Role.O_MANAGER]: {
     title: 'Onboarding Requests',
-    subtitle: 'OBS Manager (stub)',
-    defaultTab: 'overview',
-    tabs: [tab('overview', 'Overview', Permission.TAB_OVERVIEW, QC_COLUMNS)],
-    filters: QC_FILTERS,
-    actions: []
+    subtitle: 'OBS Manager',
+    defaultTab: 'unassigned',
+    tabs: MANAGER_TABS,
+    filters: FILTERS,
+    actions: MANAGER_ACTIONS
   },
   [Role.O_ANALYST]: {
     title: 'Onboarding Requests',
-    subtitle: 'OBS Analyst (stub)',
-    defaultTab: 'overview',
-    tabs: [tab('overview', 'Overview', Permission.TAB_OVERVIEW, QC_COLUMNS)],
-    filters: QC_FILTERS,
-    actions: []
+    subtitle: 'OBS Analyst',
+    defaultTab: 'my_tasks',
+    tabs: ANALYST_TABS,
+    filters: FILTERS,
+    actions: ANALYST_ACTIONS
   }
 }
 

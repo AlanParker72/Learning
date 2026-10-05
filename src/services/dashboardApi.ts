@@ -51,8 +51,6 @@ export function statusForTab(tab: string): string[] {
       return ['IN_PROGRESS', 'ASSIGNED', 'IN_REVIEW']
     case 'completed':
       return ['COMPLETED']
-    case 'overview':
-      return []
     default:
       return []
   }
@@ -107,6 +105,7 @@ export async function getDashboardData(
 
   if (useMock) {
     await new Promise((r) => setTimeout(r, 160))
+    // Empty when role lacks the tab permission; otherwise shared tab seeds + domain.
     const items = mockItemsForTab(params.role, params.tab)
     const rows = applyClientFilters(mapWorkflowItemsToRows(items), {
       applicantName: params.filters.applicantName,

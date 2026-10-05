@@ -33,7 +33,8 @@ export type FilterDef = {
 export type TabDef = {
   id: string
   label: string
-  requiredPermission?: Permission
+  /** Permission that must be in the role’s array for this tab to appear. */
+  requiredPermission: Permission
   columns: ColumnDef[]
   selectable?: boolean
 }

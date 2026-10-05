@@ -1,6 +1,9 @@
 /**
  * Capability strings checked via `can()` / `<Can />`.
  * Prefer these over `role === …` in presentational components.
+ *
+ * Tabs: each dashboard tab id maps to one `TAB_*` permission.
+ * Grant that permission in `rolePermissions.ts` for a role to see the tab.
  */
 export const Permission = {
   DASHBOARD_VIEW: 'dashboard.view',
@@ -9,8 +12,6 @@ export const Permission = {
   TAB_TEAM_TASKS: 'dashboard.tab.team_tasks',
   TAB_MY_TASKS: 'dashboard.tab.my_tasks',
   TAB_COMPLETED: 'dashboard.tab.completed',
-  /** Thin stub tab for O_* roles until their screenshots land. */
-  TAB_OVERVIEW: 'dashboard.tab.overview',
 
   FILTER_APPLICANT_NAME: 'dashboard.filter.applicant_name',
   FILTER_ID: 'dashboard.filter.id',
@@ -32,3 +33,20 @@ export const Permission = {
 } as const
 
 export type Permission = (typeof Permission)[keyof typeof Permission]
+
+/**
+ * Tab id → permission that gates visibility (UI + mock data).
+ * Adding a tab: add a `TAB_*` constant here, map the id, grant in role arrays, add config entry.
+ */
+export const TAB_REQUIRED_PERMISSION = {
+  unassigned: Permission.TAB_UNASSIGNED,
+  team_tasks: Permission.TAB_TEAM_TASKS,
+  my_tasks: Permission.TAB_MY_TASKS,
+  completed: Permission.TAB_COMPLETED
+} as const
+
+export type DashboardTabId = keyof typeof TAB_REQUIRED_PERMISSION
+
+export function isDashboardTabId(value: string): value is DashboardTabId {
+  return value in TAB_REQUIRED_PERMISSION
+}
