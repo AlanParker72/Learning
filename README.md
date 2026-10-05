@@ -1,6 +1,6 @@
 # RBAC Quality Control Dashboard
 
-Config-driven dashboard: **Role → Permissions → dashboardConfig → Zustand → reusable Dashboard → TanStack Query → workflow API**.
+Config-driven dashboard: **Role → role file (permissions + dashboard config) → can() → Zustand → reusable Dashboard → TanStack Query → workflow API**.
 
 Managers see **Unassigned / Team Tasks / Completed**. Analysts see **My Tasks / Unassigned**. Q_* vs O_* share those tab ids; domain comes from `requestGroup` (QC vs Onboarding).
 
@@ -20,13 +20,22 @@ npm run dev
 ## Pipeline
 
 ```
-Role → ROLE_PERMISSIONS → can() / <Can>
-                      ↘ getDashboardConfig(role) → filterByPermission(tabs|filters|columns|actions)
+Role → ROLE_PERMISSIONS + getDashboardConfig(role)  (same role file)
+                      → can() / <Can> safety net on requiredPermission
                       ↘ Zustand (activeTab, filters)
                       ↘ useDashboardData → getDashboardData / fetchWorkflowTasks
 ```
 
 Presentational components use `can()` / `<Can>` and config `requiredPermission` — not `role === …`.
+
+### Extension point: one file per role
+
+Each role file under `src/rbac/rolePermissions/` owns:
+
+1. **Permission list** (`*_PERMISSIONS`)
+2. **Dashboard config** (`*_DASHBOARD`) — title, tabs (with per-tab filters + columns), actions
+
+Optional catalogs under `src/rbac/catalog/` list all possible filter/action/column defs; roles pick from them or define inline. Catalogs are **not** wired to every role.
 
 ### Tabs (permission-gated)
 
@@ -36,16 +45,12 @@ Visible tabs:
 config.tabs.filter((t) => can(t.requiredPermission))
 ```
 
-Each tab id maps to a permission in `TAB_REQUIRED_PERMISSION` (`src/rbac/permissions.ts`).  
-Each role’s file under `src/rbac/rolePermissions/` is where you grant which tabs that role sees.
+Filters resolve per active tab (`tab.filters`) with an optional role-level fallback. Then `can()` filters the list.
 
-**Add a tab for a role (3 steps):**
+**Add a tab for a role:**
 
 1. Add `Permission.TAB_*` + map the tab id in `TAB_REQUIRED_PERMISSION`.
-2. Grant that permission in the role’s array file under `src/rbac/rolePermissions/`.
-3. Add the tab entry in `dashboardConfig.ts` (reuse catalog helpers; set `requiredPermission` via the map).
-
-Mocks reuse the same tab ids — no per-role dataset copy.
+2. In that role’s file: grant the permission **and** add the tab (with its own `filters` / `columns`) to `*_DASHBOARD`.
 
 ## API (on load)
 
@@ -59,10 +64,11 @@ No permission for the tab → empty list. `tabCounts` only for permitted tabs.
 ## How to add a role
 
 1. `src/rbac/roles.ts` — role key + label.
-2. `src/rbac/rolePermissions/<role>.ts` — permission list; register it in `rolePermissions/index.ts`.
-3. `src/config/dashboardConfig.ts` — only if you need new titles or net-new tab/action entries.
-4. Mocks — add `src/services/mocks/<role>.ts` and register it in `mocks/index.ts`.
-5. Backend grants for the same capabilities.
+2. `src/rbac/rolePermissions/<role>.ts` — **permissions + dashboard config** in the same file.
+3. `src/rbac/rolePermissions/index.ts` — register on `ROLE_PERMISSIONS` and `DASHBOARD_CONFIG_BY_ROLE`.
+4. Optionally add defs to `src/rbac/catalog/` if introducing net-new filters/actions/columns.
+5. Mocks — add `src/services/mocks/<role>.ts` and register it in `mocks/index.ts`.
+6. Backend grants for the same capabilities.
 
 ## Removing the temp RoleSwitcher
 

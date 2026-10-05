@@ -1,5 +1,6 @@
 export * from './roles'
 export * from './permissions'
+export * from './catalog'
 export * from './rolePermissions'
 export * from './usePermission'
 export * from './Can'

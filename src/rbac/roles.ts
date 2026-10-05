@@ -1,6 +1,7 @@
 /**
  * Canonical dashboard roles.
- * Add a new role here first, then wire permissions + config (see README).
+ * Add a new role here first, then add `rolePermissions/<role>.ts`
+ * (permissions + dashboard config) — see README.
  */
 export const Role = {
   O_MANAGER: 'O_MANAGER',

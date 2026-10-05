@@ -4,8 +4,8 @@ import type { DashboardTableRow } from '../types/workflow'
 export type FilterFieldType = 'text' | 'select' | 'date'
 
 /**
- * Table column mapping (label + data field) lives in dashboardConfig.
- * Visibility is gated by `requiredPermission` (`COLUMN_*`) granted in role files.
+ * Table column mapping (label + data field) lives in each role’s dashboard config.
+ * Visibility is gated by `requiredPermission` (`COLUMN_*`) granted in the same role file.
  */
 export type ColumnDef = {
   id: string
@@ -42,6 +42,11 @@ export type TabDef = {
   /** Permission that must be in the role’s array for this tab to appear. */
   requiredPermission: Permission
   columns: ColumnDef[]
+  /**
+   * Filters for this tab only. Prefer this over a role-wide list when tabs differ.
+   * When omitted, the shell falls back to `DashboardConfig.filters`.
+   */
+  filters?: FilterDef[]
   selectable?: boolean
 }
 
@@ -54,7 +59,11 @@ export type DashboardConfig = {
   subtitleRequiredPermission?: Permission
   defaultTab: string
   tabs: TabDef[]
-  filters: FilterDef[]
+  /**
+   * Optional role-level filters used when the active tab has no `filters` array.
+   * Prefer per-tab `filters` when tabs need different controls.
+   */
+  filters?: FilterDef[]
   actions: ActionDef[]
 }
 

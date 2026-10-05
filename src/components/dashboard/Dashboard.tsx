@@ -49,7 +49,6 @@ export function Dashboard() {
 
   const config = getDashboardConfig(activeRole)
   const visibleTabs = filterByPermission(config.tabs, can)
-  const visibleFilters = filterByPermission(config.filters, can)
   const visibleActions = filterByPermission(config.actions, can)
 
   const headerActions = visibleActions.filter((a) => a.placement === 'header')
@@ -72,6 +71,10 @@ export function Dashboard() {
   const activeTabDef =
     visibleTabs.find((t) => t.id === activeTab) ?? visibleTabs[0]
   const queryTab = activeTabDef?.id ?? config.defaultTab
+
+  // Per-tab filters first; fall back to optional role-level list.
+  const tabFilters = activeTabDef?.filters ?? config.filters ?? []
+  const visibleFilters = filterByPermission(tabFilters, can)
 
   const visibleColumns = activeTabDef
     ? filterByPermission(activeTabDef.columns, can)

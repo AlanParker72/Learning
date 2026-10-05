@@ -41,7 +41,7 @@ function displayOrUnassigned(value: string | null | undefined): string {
 /**
  * Single place: workflow API item → flat table display row.
  * Keys (`idNumber`, `applicant`, `qcAnalyst`, `obsAnalyst`, …) match
- * `ColumnDef.field` in dashboardConfig. Table reads `row[column.field]`.
+ * `ColumnDef.field` in the role’s dashboard config. Table reads `row[column.field]`.
  * Prefer `variables` keys; fall back to task/process fields.
  */
 export function mapWorkflowItemToRow(item: WorkflowTaskItem): DashboardTableRow {

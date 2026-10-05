@@ -1,10 +1,24 @@
+import type { DashboardConfig } from '../../config/types'
+import { ACTION_ASSIGN_TO_ME, ACTION_CLAIM } from '../catalog/actions'
+import {
+  COL_APPLICANT,
+  COL_BANKER,
+  COL_DAYS_IN_QUEUE,
+  COL_DAYS_IN_REVIEW,
+  COL_ID,
+  COL_OBS_ANALYST,
+  COL_REVIEW_STATUS,
+  withColumnAction
+} from '../catalog/columns'
+import { FILTER_APPLICANT_NAME, FILTER_ID } from '../catalog/filters'
 import { Permission } from '../permissions'
 
 /**
  * O_ANALYST — Onboarding analyst.
- * Same tab/action set as Q_ANALYST; domain comes from requestGroup, not extra perms.
- * Grant/revoke UI pieces by adding/removing Permission.* entries below.
+ * This file owns both the permission list and this role’s dashboard config.
+ * Domain (ONBOARDING) comes from requestGroup mapping, not extra permissions.
  */
+
 export const O_ANALYST_PERMISSIONS = [
   Permission.DASHBOARD_VIEW,
   Permission.HEADING_TITLE,
@@ -19,7 +33,7 @@ export const O_ANALYST_PERMISSIONS = [
   Permission.FILTER_APPLICANT_NAME,
   Permission.FILTER_ID,
 
-  // Columns (visibility only — mapping is in dashboardConfig)
+  // Columns
   Permission.COLUMN_ID,
   Permission.COLUMN_APPLICANT,
   Permission.COLUMN_DAYS_IN_QUEUE,
@@ -32,3 +46,39 @@ export const O_ANALYST_PERMISSIONS = [
   Permission.ACTION_CLAIM,
   Permission.ACTION_ASSIGN_TO_ME
 ] as const satisfies readonly Permission[]
+
+const O_ANALYST_COLUMNS = [
+  COL_ID,
+  COL_APPLICANT,
+  COL_DAYS_IN_QUEUE,
+  COL_DAYS_IN_REVIEW,
+  COL_REVIEW_STATUS,
+  COL_OBS_ANALYST,
+  COL_BANKER
+]
+
+export const O_ANALYST_DASHBOARD: DashboardConfig = {
+  title: 'Onboarding Requests',
+  titleRequiredPermission: Permission.HEADING_TITLE,
+  subtitle: 'OBS Analyst',
+  subtitleRequiredPermission: Permission.HEADING_SUBTITLE,
+  defaultTab: 'my_tasks',
+  tabs: [
+    {
+      id: 'my_tasks',
+      label: 'My Tasks',
+      requiredPermission: Permission.TAB_MY_TASKS,
+      filters: [FILTER_APPLICANT_NAME, FILTER_ID],
+      columns: withColumnAction(O_ANALYST_COLUMNS, 'obsAnalyst', 'claim')
+    },
+    {
+      id: 'unassigned',
+      label: 'Unassigned',
+      requiredPermission: Permission.TAB_UNASSIGNED,
+      filters: [FILTER_APPLICANT_NAME, FILTER_ID],
+      columns: withColumnAction(O_ANALYST_COLUMNS, 'obsAnalyst', 'assign_to_me'),
+      selectable: true
+    }
+  ],
+  actions: [ACTION_CLAIM, ACTION_ASSIGN_TO_ME]
+}

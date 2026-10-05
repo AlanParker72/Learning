@@ -20,7 +20,7 @@ export const Permission = {
   FILTER_APPLICANT_NAME: 'dashboard.filter.applicant_name',
   FILTER_ID: 'dashboard.filter.id',
 
-  /** Column visibility only — header/field mapping lives in dashboardConfig. */
+  /** Column visibility only — header/field mapping lives in each role’s dashboard config. */
   COLUMN_ID: 'dashboard.column.id',
   COLUMN_APPLICANT: 'dashboard.column.applicant',
   COLUMN_DAYS_IN_QUEUE: 'dashboard.column.days_in_queue',
