@@ -37,12 +37,12 @@ config.tabs.filter((t) => can(t.requiredPermission))
 ```
 
 Each tab id maps to a permission in `TAB_REQUIRED_PERMISSION` (`src/rbac/permissions.ts`).  
-`rolePermissions.ts` is the **single place that grants** which tabs a role sees.
+Each role’s file under `src/rbac/rolePermissions/` is where you grant which tabs that role sees.
 
 **Add a tab for a role (3 steps):**
 
 1. Add `Permission.TAB_*` + map the tab id in `TAB_REQUIRED_PERMISSION`.
-2. Grant that permission in the role’s array in `rolePermissions.ts`.
+2. Grant that permission in the role’s array file under `src/rbac/rolePermissions/`.
 3. Add the tab entry in `dashboardConfig.ts` (reuse catalog helpers; set `requiredPermission` via the map).
 
 Mocks reuse the same tab ids — no per-role dataset copy.
@@ -59,7 +59,7 @@ No permission for the tab → empty list. `tabCounts` only for permitted tabs.
 ## How to add a role
 
 1. `src/rbac/roles.ts` — role key + label.
-2. `src/rbac/rolePermissions.ts` — permission list (tabs/filters/columns/actions).
+2. `src/rbac/rolePermissions/<role>.ts` — permission list; register it in `rolePermissions/index.ts`.
 3. `src/config/dashboardConfig.ts` — only if you need new titles or net-new tab/action entries.
 4. Mocks — add `src/services/mocks/<role>.ts` and register it in `mocks/index.ts`.
 5. Backend grants for the same capabilities.

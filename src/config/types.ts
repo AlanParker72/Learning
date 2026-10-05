@@ -41,7 +41,11 @@ export type TabDef = {
 
 export type DashboardConfig = {
   title: string
+  /** Permission that gates the page title. */
+  titleRequiredPermission?: Permission
   subtitle?: string
+  /** Permission that gates the subtitle. */
+  subtitleRequiredPermission?: Permission
   defaultTab: string
   tabs: TabDef[]
   filters: FilterDef[]

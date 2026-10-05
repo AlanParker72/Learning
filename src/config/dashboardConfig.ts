@@ -145,8 +145,8 @@ const ANALYST_ACTIONS: ActionDef[] = [
 /**
  * Per-role dashboard layout.
  *
- * Visible tabs = `tabs.filter(t => can(t.requiredPermission))`.
- * Which permissions a role has lives only in `rolePermissions.ts`.
+ * Visible pieces = items whose `requiredPermission` is in that role’s file under
+ * `src/rbac/rolePermissions/<role>.ts` (checked via `can()` / `filterByPermission`).
  *
  * Managers: Unassigned / Team Tasks / Completed.
  * Analysts: My Tasks / Unassigned.
@@ -155,7 +155,9 @@ const ANALYST_ACTIONS: ActionDef[] = [
 export const dashboardConfigByRole: Record<Role, DashboardConfig> = {
   [Role.Q_MANAGER]: {
     title: 'Quality Control Requests',
+    titleRequiredPermission: Permission.HEADING_TITLE,
     subtitle: 'QC Analyst Manager',
+    subtitleRequiredPermission: Permission.HEADING_SUBTITLE,
     defaultTab: 'unassigned',
     tabs: MANAGER_TABS,
     filters: FILTERS,
@@ -163,7 +165,9 @@ export const dashboardConfigByRole: Record<Role, DashboardConfig> = {
   },
   [Role.Q_ANALYST]: {
     title: 'Quality Control Requests',
+    titleRequiredPermission: Permission.HEADING_TITLE,
     subtitle: 'QC Analyst',
+    subtitleRequiredPermission: Permission.HEADING_SUBTITLE,
     defaultTab: 'my_tasks',
     tabs: ANALYST_TABS,
     filters: FILTERS,
@@ -171,7 +175,9 @@ export const dashboardConfigByRole: Record<Role, DashboardConfig> = {
   },
   [Role.O_MANAGER]: {
     title: 'Onboarding Requests',
+    titleRequiredPermission: Permission.HEADING_TITLE,
     subtitle: 'OBS Manager',
+    subtitleRequiredPermission: Permission.HEADING_SUBTITLE,
     defaultTab: 'unassigned',
     tabs: MANAGER_TABS,
     filters: FILTERS,
@@ -179,7 +185,9 @@ export const dashboardConfigByRole: Record<Role, DashboardConfig> = {
   },
   [Role.O_ANALYST]: {
     title: 'Onboarding Requests',
+    titleRequiredPermission: Permission.HEADING_TITLE,
     subtitle: 'OBS Analyst',
+    subtitleRequiredPermission: Permission.HEADING_SUBTITLE,
     defaultTab: 'my_tasks',
     tabs: ANALYST_TABS,
     filters: FILTERS,

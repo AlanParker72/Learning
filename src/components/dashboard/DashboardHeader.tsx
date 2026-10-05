@@ -28,13 +28,21 @@ export function DashboardHeader({
       }}
     >
       <Box>
-        <Typography variant="h5" fontWeight={700}>
-          {config.title}
-        </Typography>
-        {config.subtitle ? (
-          <Typography variant="body2" color="text.secondary">
-            {config.subtitle}
+        <Can permission={config.titleRequiredPermission ?? Permission.HEADING_TITLE}>
+          <Typography variant="h5" fontWeight={700}>
+            {config.title}
           </Typography>
+        </Can>
+        {config.subtitle ? (
+          <Can
+            permission={
+              config.subtitleRequiredPermission ?? Permission.HEADING_SUBTITLE
+            }
+          >
+            <Typography variant="body2" color="text.secondary">
+              {config.subtitle}
+            </Typography>
+          </Can>
         ) : null}
       </Box>
 
