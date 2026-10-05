@@ -1,15 +1,25 @@
 import { create } from 'zustand'
-import type { DashboardFilters, FilterDef } from '../config/types'
+import type {
+  DashboardDataResponse,
+  DashboardFilters,
+  FilterDef
+} from '../config/types'
 import { parseRangeDefault } from '../utils/dateRange'
 
 /**
- * Dashboard UI state only — not server payloads.
- * Server data lives in TanStack Query.
+ * Dashboard UI + fetch state.
+ * Server payloads live here (not TanStack Query) — set by `useDashboard` /
+ * `useDashboardData` via getDashboardData try/catch/finally.
  */
 type DashboardState = {
   activeTab: string
   filters: DashboardFilters
   selectedIds: string[]
+
+  isLoading: boolean
+  dashboardData: DashboardDataResponse | null
+  error: string | null
+
   setActiveTab: (tab: string) => void
   setFilter: (id: string, value: string) => void
   setFilters: (filters: DashboardFilters) => void
@@ -22,6 +32,10 @@ type DashboardState = {
   clearSelection: () => void
   /** Call when role changes so tab/filters reset for the new config. */
   hydrateForRole: (defaultTab: string, filterDefs?: FilterDef[]) => void
+
+  setLoading: (isLoading: boolean) => void
+  setDashboardData: (data: DashboardDataResponse | null) => void
+  setError: (error: string | null) => void
 }
 
 /**
@@ -55,6 +69,10 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   activeTab: 'unassigned',
   filters: {},
   selectedIds: [],
+  isLoading: false,
+  dashboardData: null,
+  error: null,
+
   setActiveTab: (tab) => set({ activeTab: tab, selectedIds: [] }),
   setFilter: (id, value) =>
     set((state) => ({
@@ -82,6 +100,12 @@ export const useDashboardStore = create<DashboardState>((set) => ({
     set({
       activeTab: defaultTab,
       filters: initialFiltersFromDefs(filterDefs),
-      selectedIds: []
-    })
+      selectedIds: [],
+      dashboardData: null,
+      error: null
+    }),
+
+  setLoading: (isLoading) => set({ isLoading }),
+  setDashboardData: (dashboardData) => set({ dashboardData }),
+  setError: (error) => set({ error })
 }))

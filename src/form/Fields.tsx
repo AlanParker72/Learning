@@ -1,7 +1,3 @@
-/**
- * @deprecated Prefer `src/form/Fields.tsx` driven by `dashboardFormConfig`.
- * Kept as reference for chip/date draft behavior now ported into Fields.
- */
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 import CloseIcon from '@mui/icons-material/Close'
 import SearchIcon from '@mui/icons-material/Search'
@@ -15,63 +11,65 @@ import {
   TextField,
   Tooltip
 } from '@mui/material'
-import { useEffect, useState } from 'react'
-import type {
-  ActionDef,
-  DashboardFilters as FilterValues,
-  FilterDef
-} from '../../config/types'
-import { formatDisplayDate, rangeForPreset } from '../../utils/dateRange'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import type { ActionDef } from '../config/types'
+import { formatDisplayDate, rangeForPreset } from '../utils/dateRange'
+import type { FormFieldConfig, FormHandle, FormValues } from './types'
 
 type Props = {
-  filters: FilterDef[]
-  /** Standalone filter-bar actions (e.g. Clear All) — not filter-owned apply/clear. */
+  /** Ordered field configs from `useFormConfig` / JSON catalog. */
+  fields: Record<string, FormFieldConfig> | FormFieldConfig[]
+  form: FormHandle
+  /** Standalone filter-bar actions (e.g. Clear All). */
   actions?: ActionDef[]
-  values: FilterValues
-  onChange: (id: string, value: string) => void
-  onSetFilters: (values: FilterValues) => void
-  onClearKeys: (keys: string[]) => void
-  onReset: () => void
   onAction?: (actionId: string) => void
+  /** Called when Clear All runs (after form.reset). */
+  onReset?: () => void
 }
 
-function rangeKeysFor(filter: FilterDef): { start: string; end: string } {
-  return filter.rangeKeys ?? { start: 'startDate', end: 'endDate' }
+function asFieldList(
+  fields: Record<string, FormFieldConfig> | FormFieldConfig[]
+): FormFieldConfig[] {
+  return Array.isArray(fields) ? fields : Object.values(fields)
 }
 
-function hasControl(filter: FilterDef, control: 'apply' | 'clear'): boolean {
-  return Boolean(filter.controls?.includes(control))
+function rangeKeysFor(field: FormFieldConfig): { start: string; end: string } {
+  return field.rangeKeys ?? { start: 'startDate', end: 'endDate' }
+}
+
+function hasControl(field: FormFieldConfig, control: 'apply' | 'clear'): boolean {
+  return Boolean(field.controls?.includes(control))
 }
 
 function FilterControls({
-  filter,
+  field,
   onApply,
   onClear
 }: {
-  filter: FilterDef
+  field: FormFieldConfig
   onApply?: () => void
   onClear?: () => void
 }) {
-  if (!filter.controls?.length) return null
+  if (!field.controls?.length) return null
   return (
     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25 }}>
-      {hasControl(filter, 'apply') && onApply ? (
+      {hasControl(field, 'apply') && onApply ? (
         <Tooltip title="Apply">
           <IconButton
             size="small"
             color="primary"
-            aria-label={`Apply ${filter.label}`}
+            aria-label={`Apply ${field.label}`}
             onClick={onApply}
           >
             <ArrowForwardIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       ) : null}
-      {hasControl(filter, 'clear') && onClear ? (
+      {hasControl(field, 'clear') && onClear ? (
         <Tooltip title="Clear">
           <IconButton
             size="small"
-            aria-label={`Clear ${filter.label}`}
+            aria-label={`Clear ${field.label}`}
             onClick={onClear}
           >
             <CloseIcon fontSize="small" />
@@ -83,23 +81,24 @@ function FilterControls({
 }
 
 /**
- * Config-driven filter bar — renders each def by `type` + `presentation`.
- * Only `presentation: 'chip'` text filters use icon+label closed → expand;
- * inline/select/date stay as configured. Apply/clear live on FilterDef.controls.
+ * Dynamic form Fields renderer — builds controls from JSON form config `inputType`.
+ *
+ * TODO: replace with company DSP `<Fields />` when `@dsp` / form lib is available.
+ * Until then: text | select | date (+ dateRangePreset / dateRangePill extensions).
  */
-export function DashboardFilters({
-  filters,
+export function Fields({
+  fields,
+  form,
   actions = [],
-  values,
-  onChange,
-  onSetFilters,
-  onClearKeys,
-  onReset,
-  onAction
+  onAction,
+  onReset
 }: Props) {
-  const dateApplyOwner = filters.find(
+  const fieldList = useMemo(() => asFieldList(fields), [fields])
+  const values = form.values
+
+  const dateApplyOwner = fieldList.find(
     (f) =>
-      (f.type === 'date' || f.type === 'dateRangePreset') &&
+      (f.inputType === 'date' || f.inputType === 'dateRangePreset') &&
       hasControl(f, 'apply')
   )
   const usesDateDraft = Boolean(dateApplyOwner)
@@ -109,11 +108,9 @@ export function DashboardFilters({
   const [draftPreset, setDraftPreset] = useState(
     values.dateRangePreset ?? 'custom'
   )
-  /** Expanded chip filter ids (text with expandOnClick). */
   const [expandedChips, setExpandedChips] = useState<Record<string, boolean>>(
     {}
   )
-  /** Draft values for chip text filters until Apply. */
   const [chipDrafts, setChipDrafts] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -122,22 +119,33 @@ export function DashboardFilters({
     setDraftPreset(values.dateRangePreset ?? 'custom')
   }, [values.startDate, values.endDate, values.dateRangePreset])
 
-  // Collapse chips / sync drafts when the filter set changes (tab switch).
   useEffect(() => {
     setExpandedChips({})
     const next: Record<string, string> = {}
-    for (const f of filters) {
-      if (f.presentation === 'chip' && f.type === 'text') {
-        next[f.id] = values[f.id] ?? ''
+    for (const f of fieldList) {
+      if (f.presentation === 'chip' && f.inputType === 'text') {
+        next[f.name] = values[f.name] ?? ''
       }
     }
     setChipDrafts(next)
-  }, [filters])
+    // Only reset chip UI when the field set changes (tab switch).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fieldList])
 
-  if (filters.length === 0 && actions.length === 0) return null
+  if (fieldList.length === 0 && actions.length === 0) return null
 
   const clearAllAction = actions.find((a) => a.id === 'clear_filters')
   const otherActions = actions.filter((a) => a.id !== 'clear_filters')
+
+  const commitValues = (next: FormValues) => {
+    form.setValues(next)
+  }
+
+  const clearKeys = (keys: string[]) => {
+    const next = { ...form.getValues() }
+    for (const key of keys) delete next[key]
+    form.setValues(next)
+  }
 
   const applyDateDraft = () => {
     let start = draftStart
@@ -151,7 +159,7 @@ export function DashboardFilters({
         setDraftEnd(end)
       }
     }
-    onSetFilters({
+    commitValues({
       ...values,
       dateRangePreset: draftPreset,
       startDate: start,
@@ -163,12 +171,12 @@ export function DashboardFilters({
     setDraftStart('')
     setDraftEnd('')
     setDraftPreset('custom')
-    onClearKeys(['dateRangePreset', 'startDate', 'endDate'])
+    clearKeys(['dateRangePreset', 'startDate', 'endDate'])
   }
 
   const commitPreset = (preset: string) => {
     const range = preset === 'custom' ? null : rangeForPreset(preset)
-    onSetFilters({
+    commitValues({
       ...values,
       dateRangePreset: preset,
       ...(range ? { startDate: range.start, endDate: range.end } : {})
@@ -185,28 +193,36 @@ export function DashboardFilters({
     setDraftPreset('custom')
     setChipDrafts({})
     setExpandedChips({})
-    onReset()
+    form.reset({})
+    onReset?.()
     onAction?.('clear_filters')
   }
 
-  const applyChipFilter = (filter: FilterDef) => {
-    const draft = chipDrafts[filter.id] ?? ''
-    onChange(filter.id, draft)
-    setExpandedChips((s) => ({ ...s, [filter.id]: false }))
+  const fieldKey = (field: FormFieldConfig, index: number) =>
+    `${field.name}-${field.label}-${index}`
+
+  const applyChipFilter = (field: FormFieldConfig) => {
+    const draft = chipDrafts[field.name] ?? ''
+    form.setValue(field.name, draft)
+    setExpandedChips((s) => ({ ...s, [field.name]: false }))
   }
 
-  const clearChipFilter = (filter: FilterDef) => {
-    setChipDrafts((s) => ({ ...s, [filter.id]: '' }))
-    onClearKeys([filter.id])
-    setExpandedChips((s) => ({ ...s, [filter.id]: false }))
+  const clearChipFilter = (field: FormFieldConfig) => {
+    setChipDrafts((s) => ({ ...s, [field.name]: '' }))
+    clearKeys([field.name])
+    setExpandedChips((s) => ({ ...s, [field.name]: false }))
   }
 
-  const renderTextControl = (filter: FilterDef, value: string, onValue: (v: string) => void) => (
+  const renderTextControl = (
+    field: FormFieldConfig,
+    value: string,
+    onValue: (v: string) => void
+  ) => (
     <TextField
       size="small"
       type="text"
-      label={filter.label}
-      placeholder={filter.placeholder}
+      label={field.label}
+      placeholder={field.placeholder}
       value={value}
       onChange={(e) => onValue(e.target.value)}
       sx={{ minWidth: 200 }}
@@ -220,19 +236,20 @@ export function DashboardFilters({
       alignItems={{ xs: 'stretch', md: 'center' }}
       sx={{ mb: 2, flexWrap: 'wrap' }}
     >
-      {filters.map((filter) => {
-        const presentation = filter.presentation ?? 'inline'
+      {fieldList.map((field, index) => {
+        const presentation = field.presentation ?? 'inline'
+        const key = fieldKey(field, index)
 
-        if (filter.type === 'dateRangePreset') {
+        if (field.inputType === 'dateRangePreset') {
           const selectValue = usesDateDraft
             ? draftPreset
-            : (values[filter.id] ?? filter.defaultValue ?? 'custom')
+            : (values[field.name] ?? field.defaultValue ?? 'custom')
           return (
             <TextField
-              key={filter.id}
+              key={key}
               select
               size="small"
-              label={filter.label}
+              label={field.label}
               value={selectValue}
               onChange={(e) => {
                 const preset = e.target.value
@@ -241,7 +258,7 @@ export function DashboardFilters({
               }}
               sx={{ minWidth: 180 }}
             >
-              {(filter.options ?? []).map((opt) => (
+              {(field.options ?? []).map((opt) => (
                 <MenuItem key={opt.value || 'all'} value={opt.value}>
                   {opt.label}
                 </MenuItem>
@@ -250,18 +267,18 @@ export function DashboardFilters({
           )
         }
 
-        if (filter.type === 'select') {
+        if (field.inputType === 'select') {
           return (
             <TextField
-              key={filter.id}
+              key={key}
               select
               size="small"
-              label={filter.label}
-              value={values[filter.id] ?? ''}
-              onChange={(e) => onChange(filter.id, e.target.value)}
+              label={field.label}
+              value={values[field.name] ?? ''}
+              onChange={(e) => form.setValue(field.name, e.target.value)}
               sx={{ minWidth: 180 }}
             >
-              {(filter.options ?? []).map((opt) => (
+              {(field.options ?? []).map((opt) => (
                 <MenuItem key={opt.value || 'all'} value={opt.value}>
                   {opt.label}
                 </MenuItem>
@@ -270,8 +287,8 @@ export function DashboardFilters({
           )
         }
 
-        if (filter.type === 'dateRangePill') {
-          const keys = rangeKeysFor(filter)
+        if (field.inputType === 'dateRangePill') {
+          const keys = rangeKeysFor(field)
           const start = values[keys.start] ?? ''
           const end = values[keys.end] ?? ''
           if (!start && !end) return null
@@ -281,9 +298,9 @@ export function DashboardFilters({
               : formatDisplayDate(start || end)
           return (
             <Chip
-              key={filter.id}
+              key={key}
               label={label}
-              onDelete={() => onClearKeys([keys.start, keys.end])}
+              onDelete={() => clearKeys([keys.start, keys.end])}
               deleteIcon={<CloseIcon />}
               variant="outlined"
               sx={{ height: 36 }}
@@ -291,24 +308,24 @@ export function DashboardFilters({
           )
         }
 
-        if (filter.type === 'date') {
-          const isStart = filter.id === 'startDate'
-          const isEnd = filter.id === 'endDate'
+        if (field.inputType === 'date') {
+          const isStart = field.name === 'startDate'
+          const isEnd = field.name === 'endDate'
           const draftMode = usesDateDraft && (isStart || isEnd)
           const value = draftMode
             ? isStart
               ? draftStart
               : draftEnd
-            : (values[filter.id] ?? '')
+            : (values[field.name] ?? '')
           return (
             <Box
-              key={filter.id}
+              key={key}
               sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
             >
               <TextField
                 size="small"
                 type="date"
-                label={filter.label}
+                label={field.label}
                 value={value}
                 onChange={(e) => {
                   const v = e.target.value
@@ -317,49 +334,52 @@ export function DashboardFilters({
                     else setDraftEnd(v)
                     setDraftPreset('custom')
                   } else {
-                    onChange(filter.id, v)
+                    form.setValue(field.name, v)
                   }
                 }}
                 InputLabelProps={{ shrink: true }}
                 sx={{ minWidth: 160 }}
               />
               <FilterControls
-                filter={filter}
-                onApply={hasControl(filter, 'apply') ? applyDateDraft : undefined}
-                onClear={hasControl(filter, 'clear') ? clearDateDraft : undefined}
+                field={field}
+                onApply={hasControl(field, 'apply') ? applyDateDraft : undefined}
+                onClear={hasControl(field, 'clear') ? clearDateDraft : undefined}
               />
             </Box>
           )
         }
 
-        // text — chip: closed = search icon + label; click expands to field + controls
+        // text — chip presentation
         if (presentation === 'chip') {
-          const applied = values[filter.id] ?? ''
-          const expanded = Boolean(expandedChips[filter.id])
-          const draft = chipDrafts[filter.id] ?? applied
-          const canExpand = filter.expandOnClick !== false
+          const applied = values[field.name] ?? ''
+          const expanded = Boolean(expandedChips[field.name])
+          const draft = chipDrafts[field.name] ?? applied
+          const canExpand = field.expandOnClick !== false
 
           if (!expanded) {
             return (
               <Chip
-                key={filter.id}
+                key={key}
                 icon={<SearchIcon fontSize="small" />}
-                label={applied ? `${filter.label}: ${applied}` : filter.label}
+                label={applied ? `${field.label}: ${applied}` : field.label}
                 variant="outlined"
                 onClick={
                   canExpand
                     ? () => {
                         setChipDrafts((s) => ({
                           ...s,
-                          [filter.id]: values[filter.id] ?? ''
+                          [field.name]: values[field.name] ?? ''
                         }))
-                        setExpandedChips((s) => ({ ...s, [filter.id]: true }))
+                        setExpandedChips((s) => ({
+                          ...s,
+                          [field.name]: true
+                        }))
                       }
                     : undefined
                 }
                 onDelete={
-                  applied && hasControl(filter, 'clear')
-                    ? () => clearChipFilter(filter)
+                  applied && hasControl(field, 'clear')
+                    ? () => clearChipFilter(field)
                     : undefined
                 }
                 deleteIcon={applied ? <CloseIcon /> : undefined}
@@ -374,22 +394,22 @@ export function DashboardFilters({
 
           return (
             <Box
-              key={filter.id}
+              key={key}
               sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
             >
-              {renderTextControl(filter, draft, (v) =>
-                setChipDrafts((s) => ({ ...s, [filter.id]: v }))
+              {renderTextControl(field, draft, (v) =>
+                setChipDrafts((s) => ({ ...s, [field.name]: v }))
               )}
               <FilterControls
-                filter={filter}
+                field={field}
                 onApply={
-                  hasControl(filter, 'apply')
-                    ? () => applyChipFilter(filter)
+                  hasControl(field, 'apply')
+                    ? () => applyChipFilter(field)
                     : undefined
                 }
                 onClear={
-                  hasControl(filter, 'clear')
-                    ? () => clearChipFilter(filter)
+                  hasControl(field, 'clear')
+                    ? () => clearChipFilter(field)
                     : undefined
                 }
               />
@@ -397,25 +417,25 @@ export function DashboardFilters({
           )
         }
 
-        // inline text — live update (no filter-owned apply)
+        // inline text
         return (
           <Box
-            key={filter.id}
+            key={key}
             sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
           >
-            {renderTextControl(filter, values[filter.id] ?? '', (v) =>
-              onChange(filter.id, v)
+            {renderTextControl(field, values[field.name] ?? '', (v) =>
+              form.setValue(field.name, v)
             )}
             <FilterControls
-              filter={filter}
+              field={field}
               onApply={
-                hasControl(filter, 'apply')
-                  ? () => onChange(filter.id, values[filter.id] ?? '')
+                hasControl(field, 'apply')
+                  ? () => form.setValue(field.name, values[field.name] ?? '')
                   : undefined
               }
               onClear={
-                hasControl(filter, 'clear')
-                  ? () => onClearKeys([filter.id])
+                hasControl(field, 'clear')
+                  ? () => clearKeys([field.name])
                   : undefined
               }
             />
@@ -441,5 +461,29 @@ export function DashboardFilters({
         ))}
       </Box>
     </Stack>
+  )
+}
+
+/**
+ * Optional Form wrapper stub — company DSP typically provides `<Form>`.
+ * Dashboard can wrap Fields in this or render Fields alone.
+ */
+export function Form({
+  children,
+  onSubmit
+}: {
+  children: ReactNode
+  onSubmit?: (event: FormEvent) => void
+}) {
+  return (
+    <Box
+      component="form"
+      onSubmit={(e) => {
+        e.preventDefault()
+        onSubmit?.(e)
+      }}
+    >
+      {children}
+    </Box>
   )
 }

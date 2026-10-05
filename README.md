@@ -1,12 +1,14 @@
 # RBAC Quality Control Dashboard
 
-Config-driven dashboard: **Role → role file (permissions + dashboard config) → can() → Zustand → reusable Dashboard → TanStack Query → workflow API**.
+Config-driven dashboard: **Role → role file (permissions + dashboard config) → can() → Zustand → reusable Dashboard → useDashboard (mock getDashboardData) → workflow API**.
 
 Managers see **Unassigned / Team Tasks (O: Team Work) / Completed**. Analysts see **My Tasks / Unassigned**. Q_* vs O_* share those tab ids; domain comes from `requestGroup` (QC vs Onboarding).
 
-Filters resolve via `tab.filterPermissions ∩ role.permissions` → catalog (`presentation` / `controls` on the filter def). Columns are listed on the tab only — no `COLUMN_*` permissions.
+Filters are a **JSON-shaped form field catalog** (`src/form/formConfigs/dashboardFormConfig.ts`). Runtime: `tab.filterPermissions ∩ role.permissions` → form field keys → stub `useFormConfig` + `<Fields />`. Columns are listed on the tab only — no `COLUMN_*` permissions.
 
 Table UI uses the **company DataTable pattern** (`Spinner` / `Alert` / `DataTable` / `NoResultsView`). Local stubs live under `src/components/company/` until the real package import is wired (see handoff).
+
+**No TanStack Query** — loading/data/error live in Zustand; the hook calls `getDashboardData` with async/await.
 
 ## Quick start
 
@@ -26,8 +28,9 @@ npm run dev
 ```
 Role → ROLE_PERMISSIONS + getDashboardConfig(role)  (same role file)
                       → can() / <Can> safety net on requiredPermission
-                      ↘ Zustand (activeTab, filters)
-                      ↘ useDashboardData → getDashboardData / fetchWorkflowTasks
+                      ↘ Zustand (activeTab, filters, isLoading, dashboardData, error)
+                      ↘ useDashboard → useFormConfig(formConfig) + Fields
+                      ↘ fetchDashboard → getDashboardData / fetchWorkflowTasks
 ```
 
 Presentational components use `can()` / `<Can>` and config `requiredPermission` — not `role === …`.
@@ -39,7 +42,7 @@ Each role file under `src/rbac/rolePermissions/` owns:
 1. **Permission list** (`*_PERMISSIONS`) — full set the role may ever use (including all `FILTER_*` / `ACTION_*`)
 2. **Dashboard config** (`*_DASHBOARD`) — title, tabs with `filterPermissions` / `actionPermissions` (permission ids only) + columns
 
-Catalogs under `src/rbac/catalog/` hold filter/action UI metadata keyed by permission. Tabs never embed full `FilterDef` / `ActionDef` arrays.
+Form field catalog: `src/form/formConfigs/dashboardFormConfig.ts`. Filter catalog under `src/rbac/catalog/filters.ts` derives from that form catalog. Tabs never embed full field arrays.
 
 ### Tabs (permission-gated)
 
@@ -52,7 +55,7 @@ config.tabs.filter((t) => can(t.requiredPermission))
 Filters / actions for the active tab:
 
 ```ts
-resolveFiltersForTab(rolePermissions, tab)  // tab.filterPermissions ∩ role → catalog
+resolveFormConfigForTab(rolePermissions, tab.filterPermissions)
 resolveActionsForTab(rolePermissions, tab, config.actionPermissions)
 ```
 
@@ -75,7 +78,7 @@ No permission for the tab → empty list. `tabCounts` only for permitted tabs.
 1. `src/rbac/roles.ts` — role key + label.
 2. `src/rbac/rolePermissions/<role>.ts` — **permissions + dashboard config** in the same file.
 3. `src/rbac/rolePermissions/index.ts` — register on `ROLE_PERMISSIONS` and `DASHBOARD_CONFIG_BY_ROLE`.
-4. Optionally add catalog entries + `Permission.*` if introducing net-new filters/actions/columns.
+4. Optionally add form field + `Permission.*` if introducing net-new filters/actions/columns.
 5. Mocks — add `src/services/mocks/<role>.ts` and register it in `mocks/index.ts`.
 6. Backend grants for the same capabilities.
 
@@ -92,11 +95,9 @@ Copy `.env.example` → `.env`:
 - `VITE_WORKFLOW_TASK_ID` — optional list-on-load path `{task_id}`
 - `VITE_DEFAULT_ROLE` — optional authStore default (`Q_MANAGER` | `Q_ANALYST` | `O_MANAGER` | `O_ANALYST`)
 
-## Swap to company DataTable
+## Swap to company DataTable / DSP form
 
-1. Replace imports in `Dashboard.tsx`:
-   - `../company/DataTable` → real package `DataTable`
-   - `../company/Spinner` / `NoResultsView` → package exports (if provided)
-2. Delete `src/components/company/*` stubs.
-3. Keep the Dashboard branch: loading → Spinner, error → Alert, rows → DataTable, empty → NoResultsView.
+1. DataTable: replace imports in `Dashboard.tsx` from `../company/*` with the real package; delete stubs.
+2. Form: replace `src/form/useFormConfig.ts` + `Fields.tsx` with `@dsp` / company form lib; keep `dashboardFormConfig.ts` field shape.
+3. Keep Dashboard branch: loading → Spinner, error → Alert, rows → DataTable, empty → NoResultsView.
 4. Keep column mapping: role `{ field, header }` → `{ field, headerName, renderCell }`, `rowKey="id"`.

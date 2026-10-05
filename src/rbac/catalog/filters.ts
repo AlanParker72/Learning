@@ -1,125 +1,58 @@
 import { Permission } from '../permissions'
-import type { FilterDef } from '../../config/types'
-
-function currentMonthRangeDefault(): string {
-  const now = new Date()
-  const y = now.getFullYear()
-  const m = now.getMonth()
-  const start = new Date(y, m, 1)
-  const end = new Date(y, m + 1, 0)
-  const iso = (d: Date) => d.toISOString().slice(0, 10)
-  return `${iso(start)}|${iso(end)}`
-}
+import type { FilterDef, FilterFieldType } from '../../config/types'
+import {
+  DASHBOARD_FORM_FIELDS,
+  FORM_FIELD_KEY_BY_PERMISSION
+} from '../../form/formConfigs/dashboardFormConfig'
+import type { FormFieldConfig } from '../../form/types'
 
 /**
- * Catalog of all filter defs keyed by permission.
- * Tabs list permission ids only; runtime intersects with role.permissions and resolves here.
- * Apply/clear live on the def (`controls`) — no separate bundles / ACTION_APPLY grants.
+ * Filter catalog — UI metadata derived from the JSON-shaped form field catalog
+ * (`src/form/formConfigs/dashboardFormConfig.ts`) so RBAC permission keys and
+ * form field keys stay aligned.
+ *
+ * Tabs still list `filterPermissions` only; runtime intersects with role and
+ * resolves here (and via `resolveFormConfigForTab` for the Fields renderer).
  */
-export const FILTER_APPLICANT_NAME: FilterDef = {
-  id: 'applicantName',
-  label: 'Applicant Name',
-  type: 'text',
-  placeholder: 'Search by Applicant Name',
-  requiredPermission: Permission.FILTER_APPLICANT_NAME,
-  presentation: 'inline'
+
+function formFieldToFilterDef(field: FormFieldConfig): FilterDef {
+  return {
+    id: field.name,
+    label: field.label,
+    type: field.inputType as FilterFieldType,
+    placeholder: field.placeholder,
+    options: field.options,
+    requiredPermission: field.requiredPermission,
+    rangeKeys: field.rangeKeys,
+    defaultValue: field.defaultValue,
+    presentation: field.presentation,
+    expandOnClick: field.expandOnClick,
+    controls: field.controls
+  }
 }
 
-/** Inline ID# (Unassigned-style). */
-export const FILTER_ID: FilterDef = {
-  id: 'id',
-  label: 'ID#',
-  type: 'text',
-  placeholder: 'Search by ID#',
-  requiredPermission: Permission.FILTER_ID,
-  presentation: 'inline'
+function defForPermission(permission: Permission): FilterDef | undefined {
+  const key = FORM_FIELD_KEY_BY_PERMISSION[permission]
+  if (!key) return undefined
+  return formFieldToFilterDef(DASHBOARD_FORM_FIELDS[key])
 }
 
-/**
- * Chip “ID Number” — closed: search icon + label; click expands to text field
- * + apply (arrow) + clear (X). Same store key (`id`) as FILTER_ID.
- * Inline filters (Applicant Name, ID#) stay always-visible — not this pattern.
- */
-export const FILTER_ID_NUMBER: FilterDef = {
-  id: 'id',
-  label: 'ID Number',
-  type: 'text',
-  placeholder: 'Search by ID Number',
-  requiredPermission: Permission.FILTER_ID_NUMBER,
-  presentation: 'chip',
-  expandOnClick: true,
-  controls: ['apply', 'clear']
-}
+export const FILTER_APPLICANT_NAME = defForPermission(
+  Permission.FILTER_APPLICANT_NAME
+)!
+export const FILTER_ID = defForPermission(Permission.FILTER_ID)!
+export const FILTER_ID_NUMBER = defForPermission(Permission.FILTER_ID_NUMBER)!
+export const FILTER_STATUS = defForPermission(Permission.FILTER_STATUS)!
+export const FILTER_DATE_RANGE_PRESET = defForPermission(
+  Permission.FILTER_DATE_RANGE_PRESET
+)!
+export const FILTER_START_DATE = defForPermission(Permission.FILTER_START_DATE)!
+export const FILTER_END_DATE = defForPermission(Permission.FILTER_END_DATE)!
+export const FILTER_DATE_RANGE_PILL = defForPermission(
+  Permission.FILTER_DATE_RANGE_PILL
+)!
 
-export const FILTER_STATUS: FilterDef = {
-  id: 'status',
-  label: 'Status',
-  type: 'select',
-  requiredPermission: Permission.FILTER_STATUS,
-  presentation: 'inline',
-  defaultValue: '',
-  options: [
-    { value: '', label: 'All' },
-    { value: 'Pending', label: 'Pending' },
-    { value: 'In Review', label: 'In Review' },
-    { value: 'Completed', label: 'Completed' }
-  ]
-}
-
-/**
- * Custom Range / Last N days dropdown (Completed-style).
- * `defaultValue` sets the select only — applied start/end come from Apply
- * (controls on FILTER_END_DATE) or from FILTER_DATE_RANGE_PILL (O), not from this preset alone.
- */
-export const FILTER_DATE_RANGE_PRESET: FilterDef = {
-  id: 'dateRangePreset',
-  label: 'Custom Range',
-  type: 'dateRangePreset',
-  requiredPermission: Permission.FILTER_DATE_RANGE_PRESET,
-  presentation: 'inline',
-  defaultValue: 'this_month',
-  options: [
-    { value: 'custom', label: 'Custom Range' },
-    { value: 'last_7', label: 'Last 7 days' },
-    { value: 'last_30', label: 'Last 30 days' },
-    { value: 'this_month', label: 'This month' }
-  ]
-}
-
-export const FILTER_START_DATE: FilterDef = {
-  id: 'startDate',
-  label: 'Start Date',
-  type: 'date',
-  requiredPermission: Permission.FILTER_START_DATE,
-  presentation: 'inline'
-}
-
-/** End date owns apply/clear for the Q Completed date draft group. */
-export const FILTER_END_DATE: FilterDef = {
-  id: 'endDate',
-  label: 'End Date',
-  type: 'date',
-  requiredPermission: Permission.FILTER_END_DATE,
-  presentation: 'inline',
-  controls: ['apply', 'clear']
-}
-
-/**
- * Active applied date-range chip with dismiss.
- * Reads/writes `startDate` + `endDate` via `rangeKeys` (not its own value key).
- * O_MANAGER Completed only — defaults to the current calendar month.
- */
-export const FILTER_DATE_RANGE_PILL: FilterDef = {
-  id: 'dateRangePill',
-  label: 'Date range',
-  type: 'dateRangePill',
-  requiredPermission: Permission.FILTER_DATE_RANGE_PILL,
-  presentation: 'chip',
-  rangeKeys: { start: 'startDate', end: 'endDate' },
-  defaultValue: currentMonthRangeDefault()
-}
-
-/** Permission → filter UI metadata. */
+/** Permission → filter UI metadata (backed by form catalog). */
 export const FILTER_BY_PERMISSION: Partial<Record<Permission, FilterDef>> = {
   [Permission.FILTER_APPLICANT_NAME]: FILTER_APPLICANT_NAME,
   [Permission.FILTER_ID]: FILTER_ID,
@@ -131,7 +64,6 @@ export const FILTER_BY_PERMISSION: Partial<Record<Permission, FilterDef>> = {
   [Permission.FILTER_DATE_RANGE_PILL]: FILTER_DATE_RANGE_PILL
 }
 
-/** Menu of every known filter — for reference / picking, not a shared role list. */
 export const ALL_FILTERS: readonly FilterDef[] = [
   FILTER_APPLICANT_NAME,
   FILTER_ID,
