@@ -41,6 +41,8 @@ export const Permission = {
   ACTION_ASSIGN_TO_ME: 'dashboard.action.assign_to_me',
   ACTION_ASSIGN_RECORDS: 'dashboard.action.assign_records',
   ACTION_CLEAR_FILTERS: 'dashboard.action.clear_filters',
+  /** O_MANAGER-style “Clear All” label; same clear behavior as ACTION_CLEAR_FILTERS. */
+  ACTION_CLEAR_ALL_FILTERS: 'dashboard.action.clear_all_filters',
   ACTION_APPLY_DATE_FILTER: 'dashboard.action.apply_date_filter',
   ACTION_BULK_SELECT: 'dashboard.action.bulk_select',
 

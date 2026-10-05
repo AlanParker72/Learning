@@ -1,10 +1,5 @@
 import type { DashboardConfig } from '../../config/types'
 import {
-  ACTION_ASSIGN_TO_ME,
-  ACTION_CLAIM,
-  ACTION_CLEAR_FILTERS
-} from '../catalog/actions'
-import {
   COL_APPLICANT,
   COL_BANKER,
   COL_DAYS_IN_QUEUE,
@@ -14,13 +9,13 @@ import {
   COL_REVIEW_STATUS,
   withColumnAction
 } from '../catalog/columns'
-import { FILTER_APPLICANT_NAME, FILTER_ID } from '../catalog/filters'
 import { Permission } from '../permissions'
 
 /**
  * O_ANALYST — Onboarding analyst.
  * This file owns both the permission list and this role’s dashboard config.
  * Domain (ONBOARDING) comes from requestGroup mapping, not extra permissions.
+ * Tabs list filter/action permission ids only — catalog supplies UI metadata.
  */
 
 export const O_ANALYST_PERMISSIONS = [
@@ -62,6 +57,11 @@ const O_ANALYST_COLUMNS = [
   COL_BANKER
 ]
 
+const SEARCH_FILTER_PERMISSIONS = [
+  Permission.FILTER_APPLICANT_NAME,
+  Permission.FILTER_ID
+]
+
 export const O_ANALYST_DASHBOARD: DashboardConfig = {
   title: 'Onboarding Requests',
   titleRequiredPermission: Permission.HEADING_TITLE,
@@ -73,19 +73,22 @@ export const O_ANALYST_DASHBOARD: DashboardConfig = {
       id: 'my_tasks',
       label: 'My Tasks',
       requiredPermission: Permission.TAB_MY_TASKS,
-      filters: [FILTER_APPLICANT_NAME, FILTER_ID],
+      filterPermissions: SEARCH_FILTER_PERMISSIONS,
       columns: withColumnAction(O_ANALYST_COLUMNS, 'obsAnalyst', 'claim'),
-      actions: [ACTION_CLEAR_FILTERS]
+      actionPermissions: [Permission.ACTION_CLEAR_FILTERS]
     },
     {
       id: 'unassigned',
       label: 'Unassigned',
       requiredPermission: Permission.TAB_UNASSIGNED,
-      filters: [FILTER_APPLICANT_NAME, FILTER_ID],
+      filterPermissions: SEARCH_FILTER_PERMISSIONS,
       columns: withColumnAction(O_ANALYST_COLUMNS, 'obsAnalyst', 'assign_to_me'),
       selectable: true,
-      actions: [ACTION_CLEAR_FILTERS]
+      actionPermissions: [Permission.ACTION_CLEAR_FILTERS]
     }
   ],
-  actions: [ACTION_CLAIM, ACTION_ASSIGN_TO_ME]
+  actionPermissions: [
+    Permission.ACTION_CLAIM,
+    Permission.ACTION_ASSIGN_TO_ME
+  ]
 }

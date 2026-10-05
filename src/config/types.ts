@@ -58,15 +58,16 @@ export type TabDef = {
   requiredPermission: Permission
   columns: ColumnDef[]
   /**
-   * Filters for this tab only. Prefer this over a role-wide list when tabs differ.
-   * When omitted, the shell falls back to `DashboardConfig.filters`.
+   * Filter permission ids for this tab only (not full FilterDef objects).
+   * Runtime: `tab.filterPermissions ∩ role.permissions` → resolve from filter catalog.
    */
-  filters?: FilterDef[]
+  filterPermissions: Permission[]
   /**
-   * Actions for this tab (e.g. filter-bar Apply / Clear).
-   * Merged with role-level `DashboardConfig.actions` (tab wins on same id).
+   * Action permission ids for this tab (e.g. filter-bar Apply / Clear, bulk select).
+   * Merged with role-level `DashboardConfig.actionPermissions` (tab wins on same action id).
+   * Runtime: intersect with role.permissions → resolve from action catalog.
    */
-  actions?: ActionDef[]
+  actionPermissions?: Permission[]
   selectable?: boolean
 }
 
@@ -80,11 +81,10 @@ export type DashboardConfig = {
   defaultTab: string
   tabs: TabDef[]
   /**
-   * Optional role-level filters used when the active tab has no `filters` array.
-   * Prefer per-tab `filters` when tabs need different controls.
+   * Role-wide action permission ids (header / row). Merged with each tab’s
+   * `actionPermissions`; tab wins on the same action id.
    */
-  filters?: FilterDef[]
-  actions: ActionDef[]
+  actionPermissions?: Permission[]
 }
 
 export type DashboardFilters = Record<string, string>

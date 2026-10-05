@@ -1,11 +1,5 @@
 import type { DashboardConfig } from '../../config/types'
 import {
-  ACTION_APPLY_DATE_FILTER,
-  ACTION_ASSIGN_RECORDS,
-  ACTION_BULK_SELECT,
-  ACTION_CLEAR_FILTERS
-} from '../catalog/actions'
-import {
   COL_APPLICANT,
   COL_BANKER,
   COL_DATE_COMPLETED,
@@ -16,20 +10,13 @@ import {
   COL_QC_ANALYST,
   COL_REVIEW_STATUS
 } from '../catalog/columns'
-import {
-  FILTER_APPLICANT_NAME,
-  FILTER_DATE_RANGE_PRESET,
-  FILTER_END_DATE,
-  FILTER_ID,
-  FILTER_START_DATE
-} from '../catalog/filters'
 import { Permission } from '../permissions'
 
 /**
  * Q_MANAGER — Quality Control manager.
  * This file owns both the permission list and this role’s dashboard config.
  * Grant/revoke UI pieces by adding/removing Permission.* entries below;
- * layout (tabs / filters / columns / actions) is declared independently here.
+ * tabs list filter/action permission ids only — catalog supplies UI metadata.
  *
  * Completed filters (screenshot 1): Custom Range + Start/End + Apply/Clear icons.
  * Unassigned / Team Tasks keep applicant + id search filters.
@@ -46,7 +33,7 @@ export const Q_MANAGER_PERMISSIONS = [
   Permission.TAB_TEAM_TASKS,
   Permission.TAB_COMPLETED,
 
-  // Filters
+  // Filters (full set this role may ever use)
   Permission.FILTER_APPLICANT_NAME,
   Permission.FILTER_ID,
   Permission.FILTER_DATE_RANGE_PRESET,
@@ -92,13 +79,16 @@ const Q_MANAGER_COMPLETED_COLUMNS = [
   COL_BANKER
 ]
 
-const Q_MANAGER_SEARCH_FILTERS = [FILTER_APPLICANT_NAME, FILTER_ID]
+const SEARCH_FILTER_PERMISSIONS = [
+  Permission.FILTER_APPLICANT_NAME,
+  Permission.FILTER_ID
+]
 
 /** Screenshot 1: preset dropdown + start/end dates. */
-const Q_MANAGER_COMPLETED_FILTERS = [
-  FILTER_DATE_RANGE_PRESET,
-  FILTER_START_DATE,
-  FILTER_END_DATE
+const COMPLETED_FILTER_PERMISSIONS = [
+  Permission.FILTER_DATE_RANGE_PRESET,
+  Permission.FILTER_START_DATE,
+  Permission.FILTER_END_DATE
 ]
 
 export const Q_MANAGER_DASHBOARD: DashboardConfig = {
@@ -112,28 +102,37 @@ export const Q_MANAGER_DASHBOARD: DashboardConfig = {
       id: 'unassigned',
       label: 'Unassigned',
       requiredPermission: Permission.TAB_UNASSIGNED,
-      filters: Q_MANAGER_SEARCH_FILTERS,
+      filterPermissions: SEARCH_FILTER_PERMISSIONS,
       columns: Q_MANAGER_QUEUE_COLUMNS,
       selectable: true,
-      actions: [ACTION_BULK_SELECT, ACTION_CLEAR_FILTERS]
+      actionPermissions: [
+        Permission.ACTION_BULK_SELECT,
+        Permission.ACTION_CLEAR_FILTERS
+      ]
     },
     {
       id: 'team_tasks',
       label: 'Team Tasks',
       requiredPermission: Permission.TAB_TEAM_TASKS,
-      filters: Q_MANAGER_SEARCH_FILTERS,
+      filterPermissions: SEARCH_FILTER_PERMISSIONS,
       columns: Q_MANAGER_QUEUE_COLUMNS,
       selectable: true,
-      actions: [ACTION_BULK_SELECT, ACTION_CLEAR_FILTERS]
+      actionPermissions: [
+        Permission.ACTION_BULK_SELECT,
+        Permission.ACTION_CLEAR_FILTERS
+      ]
     },
     {
       id: 'completed',
       label: 'Completed',
       requiredPermission: Permission.TAB_COMPLETED,
-      filters: Q_MANAGER_COMPLETED_FILTERS,
+      filterPermissions: COMPLETED_FILTER_PERMISSIONS,
       columns: Q_MANAGER_COMPLETED_COLUMNS,
-      actions: [ACTION_APPLY_DATE_FILTER, ACTION_CLEAR_FILTERS]
+      actionPermissions: [
+        Permission.ACTION_APPLY_DATE_FILTER,
+        Permission.ACTION_CLEAR_FILTERS
+      ]
     }
   ],
-  actions: [ACTION_ASSIGN_RECORDS]
+  actionPermissions: [Permission.ACTION_ASSIGN_RECORDS]
 }

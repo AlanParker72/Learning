@@ -32,10 +32,10 @@ Presentational components use `can()` / `<Can>` and config `requiredPermission` 
 
 Each role file under `src/rbac/rolePermissions/` owns:
 
-1. **Permission list** (`*_PERMISSIONS`)
-2. **Dashboard config** (`*_DASHBOARD`) — title, tabs (with per-tab filters + columns), actions
+1. **Permission list** (`*_PERMISSIONS`) — full set the role may ever use (including all `FILTER_*` / `ACTION_*`)
+2. **Dashboard config** (`*_DASHBOARD`) — title, tabs with `filterPermissions` / `actionPermissions` (permission ids only) + columns
 
-Optional catalogs under `src/rbac/catalog/` list all possible filter/action/column defs; roles pick from them or define inline. Catalogs are **not** wired to every role.
+Catalogs under `src/rbac/catalog/` hold filter/action UI metadata keyed by permission. Tabs never embed full `FilterDef` / `ActionDef` arrays.
 
 ### Tabs (permission-gated)
 
@@ -45,12 +45,17 @@ Visible tabs:
 config.tabs.filter((t) => can(t.requiredPermission))
 ```
 
-Filters resolve per active tab (`tab.filters`) with an optional role-level fallback. Then `can()` filters the list.
+Filters / actions for the active tab:
+
+```ts
+resolveFiltersForTab(rolePermissions, tab)  // tab.filterPermissions ∩ role → catalog
+resolveActionsForTab(rolePermissions, tab, config.actionPermissions)
+```
 
 **Add a tab for a role:**
 
 1. Add `Permission.TAB_*` + map the tab id in `TAB_REQUIRED_PERMISSION`.
-2. In that role’s file: grant the permission **and** add the tab (with its own `filters` / `columns`) to `*_DASHBOARD`.
+2. In that role’s file: grant the permission **and** add the tab (`filterPermissions` / `columns` / optional `actionPermissions`) to `*_DASHBOARD`.
 
 ## API (on load)
 
@@ -66,7 +71,7 @@ No permission for the tab → empty list. `tabCounts` only for permitted tabs.
 1. `src/rbac/roles.ts` — role key + label.
 2. `src/rbac/rolePermissions/<role>.ts` — **permissions + dashboard config** in the same file.
 3. `src/rbac/rolePermissions/index.ts` — register on `ROLE_PERMISSIONS` and `DASHBOARD_CONFIG_BY_ROLE`.
-4. Optionally add defs to `src/rbac/catalog/` if introducing net-new filters/actions/columns.
+4. Optionally add catalog entries + `Permission.*` if introducing net-new filters/actions/columns.
 5. Mocks — add `src/services/mocks/<role>.ts` and register it in `mocks/index.ts`.
 6. Backend grants for the same capabilities.
 

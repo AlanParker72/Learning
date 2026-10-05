@@ -9,12 +9,14 @@ import {
 } from '@mui/material'
 import {
   filterByPermission,
-  getDashboardConfig
+  getDashboardConfig,
+  resolveActionsForTab,
+  resolveFiltersForTab
 } from '../../config/dashboardConfig'
-import type { ActionDef } from '../../config/types'
 import { useDashboardData } from '../../hooks/useDashboardData'
 import { Can } from '../../rbac/Can'
 import { Permission } from '../../rbac/permissions'
+import { ROLE_PERMISSIONS } from '../../rbac/rolePermissions'
 import { usePermission } from '../../rbac/usePermission'
 import { claimWorkflowTask } from '../../services/dashboardApi'
 import { useAuthStore } from '../../store/authStore'
@@ -25,26 +27,18 @@ import { DashboardHeader } from './DashboardHeader'
 import { DashboardTable } from './DashboardTable'
 import { DashboardTabs } from './DashboardTabs'
 
-function mergeActions(
-  roleActions: ActionDef[],
-  tabActions: ActionDef[] | undefined
-): ActionDef[] {
-  const byId = new Map<string, ActionDef>()
-  for (const a of roleActions) byId.set(a.id, a)
-  // Tab actions win on the same id (e.g. Clear All label).
-  for (const a of tabActions ?? []) byId.set(a.id, a)
-  return [...byId.values()]
-}
-
 /**
  * Generic dashboard shell — role differences come from config + permissions.
  * No `role === …` branching in presentational children.
  *
  * On mount / when role|tab|filters change: TanStack Query → getDashboardData.
+ *
+ * Filters/actions: tab permission ids ∩ role.permissions → catalog.
  */
 export function Dashboard() {
   const activeRole = useAuthStore((s) => s.activeRole)
   const { can } = usePermission()
+  const rolePermissions = ROLE_PERMISSIONS[activeRole]
 
   const activeTab = useDashboardStore((s) => s.activeTab)
   const filters = useDashboardStore((s) => s.filters)
@@ -71,9 +65,12 @@ export function Dashboard() {
   // Reset tab/filters when temp role changes (not on every tab click)
   useEffect(() => {
     const cfg = getDashboardConfig(activeRole)
+    const perms = ROLE_PERMISSIONS[activeRole]
     const defaultTabDef =
       cfg.tabs.find((t) => t.id === cfg.defaultTab) ?? cfg.tabs[0]
-    const defs = defaultTabDef?.filters ?? cfg.filters ?? []
+    const defs = defaultTabDef
+      ? resolveFiltersForTab(perms, defaultTabDef)
+      : []
     hydrateForRole(cfg.defaultTab, defs)
     prevTabRef.current = cfg.defaultTab
   }, [activeRole, hydrateForRole])
@@ -89,23 +86,35 @@ export function Dashboard() {
     visibleTabs.find((t) => t.id === activeTab) ?? visibleTabs[0]
   const queryTab = activeTabDef?.id ?? config.defaultTab
 
-  // Per-tab filters first; fall back to optional role-level list.
-  const tabFilters = activeTabDef?.filters ?? config.filters ?? []
-  const visibleFilters = filterByPermission(tabFilters, can)
+  const visibleFilters = useMemo(
+    () =>
+      activeTabDef
+        ? resolveFiltersForTab(rolePermissions, activeTabDef)
+        : [],
+    [activeTabDef, rolePermissions]
+  )
 
   // Re-hydrate filter values when the active tab’s filter set changes.
   useEffect(() => {
     if (!activeTabDef) return
     if (prevTabRef.current === activeTabDef.id) return
     prevTabRef.current = activeTabDef.id
-    hydrateFiltersFromDefs(activeTabDef.filters ?? config.filters ?? [])
-  }, [activeTabDef, config.filters, hydrateFiltersFromDefs])
+    hydrateFiltersFromDefs(
+      resolveFiltersForTab(ROLE_PERMISSIONS[activeRole], activeTabDef)
+    )
+  }, [activeRole, activeTabDef, hydrateFiltersFromDefs])
 
-  const mergedActions = useMemo(
-    () => mergeActions(config.actions, activeTabDef?.actions),
-    [config.actions, activeTabDef?.actions]
+  const visibleActions = useMemo(
+    () =>
+      activeTabDef
+        ? resolveActionsForTab(
+            rolePermissions,
+            activeTabDef,
+            config.actionPermissions ?? []
+          )
+        : [],
+    [activeTabDef, config.actionPermissions, rolePermissions]
   )
-  const visibleActions = filterByPermission(mergedActions, can)
 
   const headerActions = visibleActions.filter((a) => a.placement === 'header')
   const filterBarActions = visibleActions.filter(

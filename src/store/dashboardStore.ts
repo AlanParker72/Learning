@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { DashboardFilters, FilterDef } from '../config/types'
-import { parseRangeDefault, rangeForPreset } from '../utils/dateRange'
+import { parseRangeDefault } from '../utils/dateRange'
 
 /**
  * Dashboard UI state only — not server payloads.
@@ -24,7 +24,11 @@ type DashboardState = {
   hydrateForRole: (defaultTab: string, filterDefs?: FilterDef[]) => void
 }
 
-/** Derive store values from catalog `defaultValue` / pill / preset defs. */
+/**
+ * Derive store values from catalog `defaultValue` / pill defs.
+ * Preset `defaultValue` sets the select key only — it does not write start/end
+ * (Q_MANAGER Completed applies via Apply; O_MANAGER uses dateRangePill defaults).
+ */
 export function initialFiltersFromDefs(defs: FilterDef[]): DashboardFilters {
   const next: DashboardFilters = {}
 
@@ -41,16 +45,6 @@ export function initialFiltersFromDefs(defs: FilterDef[]): DashboardFilters {
 
     if (def.defaultValue != null && def.defaultValue !== '') {
       next[def.id] = def.defaultValue
-    }
-  }
-
-  // If a preset default implies a concrete range and start/end are still empty, fill them.
-  const preset = next.dateRangePreset
-  if (preset && preset !== 'custom' && !next.startDate && !next.endDate) {
-    const range = rangeForPreset(preset)
-    if (range) {
-      next.startDate = range.start
-      next.endDate = range.end
     }
   }
 

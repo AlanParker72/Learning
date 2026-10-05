@@ -1,10 +1,5 @@
 import type { DashboardConfig } from '../../config/types'
 import {
-  ACTION_ASSIGN_TO_ME,
-  ACTION_CLAIM,
-  ACTION_CLEAR_FILTERS
-} from '../catalog/actions'
-import {
   COL_APPLICANT,
   COL_BANKER,
   COL_DAYS_IN_QUEUE,
@@ -14,12 +9,12 @@ import {
   COL_REVIEW_STATUS,
   withColumnAction
 } from '../catalog/columns'
-import { FILTER_APPLICANT_NAME, FILTER_ID } from '../catalog/filters'
 import { Permission } from '../permissions'
 
 /**
  * Q_ANALYST — Quality Control analyst.
  * This file owns both the permission list and this role’s dashboard config.
+ * Tabs list filter/action permission ids only — catalog supplies UI metadata.
  */
 
 export const Q_ANALYST_PERMISSIONS = [
@@ -61,6 +56,11 @@ const Q_ANALYST_COLUMNS = [
   COL_BANKER
 ]
 
+const SEARCH_FILTER_PERMISSIONS = [
+  Permission.FILTER_APPLICANT_NAME,
+  Permission.FILTER_ID
+]
+
 export const Q_ANALYST_DASHBOARD: DashboardConfig = {
   title: 'Quality Control Requests',
   titleRequiredPermission: Permission.HEADING_TITLE,
@@ -72,19 +72,22 @@ export const Q_ANALYST_DASHBOARD: DashboardConfig = {
       id: 'my_tasks',
       label: 'My Tasks',
       requiredPermission: Permission.TAB_MY_TASKS,
-      filters: [FILTER_APPLICANT_NAME, FILTER_ID],
+      filterPermissions: SEARCH_FILTER_PERMISSIONS,
       columns: withColumnAction(Q_ANALYST_COLUMNS, 'qcAnalyst', 'claim'),
-      actions: [ACTION_CLEAR_FILTERS]
+      actionPermissions: [Permission.ACTION_CLEAR_FILTERS]
     },
     {
       id: 'unassigned',
       label: 'Unassigned',
       requiredPermission: Permission.TAB_UNASSIGNED,
-      filters: [FILTER_APPLICANT_NAME, FILTER_ID],
+      filterPermissions: SEARCH_FILTER_PERMISSIONS,
       columns: withColumnAction(Q_ANALYST_COLUMNS, 'qcAnalyst', 'assign_to_me'),
       selectable: true,
-      actions: [ACTION_CLEAR_FILTERS]
+      actionPermissions: [Permission.ACTION_CLEAR_FILTERS]
     }
   ],
-  actions: [ACTION_CLAIM, ACTION_ASSIGN_TO_ME]
+  actionPermissions: [
+    Permission.ACTION_CLAIM,
+    Permission.ACTION_ASSIGN_TO_ME
+  ]
 }
