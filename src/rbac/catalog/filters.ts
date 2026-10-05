@@ -36,8 +36,9 @@ export const FILTER_ID: FilterDef = {
 }
 
 /**
- * Chip “ID Number” — click expands to text field + apply (arrow) + clear (X).
- * Same store key (`id`) as FILTER_ID.
+ * Chip “ID Number” — closed: search icon + label; click expands to text field
+ * + apply (arrow) + clear (X). Same store key (`id`) as FILTER_ID.
+ * Inline filters (Applicant Name, ID#) stay always-visible — not this pattern.
  */
 export const FILTER_ID_NUMBER: FilterDef = {
   id: 'id',

@@ -1,5 +1,6 @@
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 import CloseIcon from '@mui/icons-material/Close'
+import SearchIcon from '@mui/icons-material/Search'
 import {
   Box,
   Button,
@@ -79,8 +80,8 @@ function FilterControls({
 
 /**
  * Config-driven filter bar — renders each def by `type` + `presentation`.
- * Chip filters expand to input + filter-owned controls; apply/clear do not
- * require ACTION_* on the role/tab.
+ * Only `presentation: 'chip'` text filters use icon+label closed → expand;
+ * inline/select/date stay as configured. Apply/clear live on FilterDef.controls.
  */
 export function DashboardFilters({
   filters,
@@ -327,20 +328,22 @@ export function DashboardFilters({
           )
         }
 
-        // text
+        // text — chip: closed = search icon + label; click expands to field + controls
         if (presentation === 'chip') {
           const applied = values[filter.id] ?? ''
           const expanded = Boolean(expandedChips[filter.id])
           const draft = chipDrafts[filter.id] ?? applied
+          const canExpand = filter.expandOnClick !== false
 
           if (!expanded) {
             return (
               <Chip
                 key={filter.id}
+                icon={<SearchIcon fontSize="small" />}
                 label={applied ? `${filter.label}: ${applied}` : filter.label}
                 variant="outlined"
                 onClick={
-                  filter.expandOnClick !== false
+                  canExpand
                     ? () => {
                         setChipDrafts((s) => ({
                           ...s,
@@ -358,7 +361,8 @@ export function DashboardFilters({
                 deleteIcon={applied ? <CloseIcon /> : undefined}
                 sx={{
                   height: 36,
-                  cursor: filter.expandOnClick !== false ? 'pointer' : 'default'
+                  cursor: canExpand ? 'pointer' : 'default',
+                  '& .MuiChip-icon': { ml: 0.75 }
                 }}
               />
             )

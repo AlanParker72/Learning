@@ -54,11 +54,12 @@ export type FilterDef = {
   /** Optional initial value when the tab/role hydrates filters. */
   defaultValue?: string
   /**
-   * `chip` = collapsed label until expand; `inline` = always-visible control.
+   * `chip` = closed search-icon + label until expand; `inline` = always-visible.
+   * Only chip (+ expandOnClick) uses the icon-click pattern — not all filters.
    * Defaults to `inline`.
    */
   presentation?: FilterPresentation
-  /** When true, chip expands to the input + filter-owned controls on click. */
+  /** When true (default for chip), click expands to input + filter-owned controls. */
   expandOnClick?: boolean
   /**
    * Filter-owned actions (apply arrow, clear X). Do not require ACTION_APPLY /
