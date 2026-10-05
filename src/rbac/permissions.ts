@@ -20,12 +20,15 @@ export const Permission = {
   FILTER_APPLICANT_NAME: 'dashboard.filter.applicant_name',
   FILTER_ID: 'dashboard.filter.id',
 
+  /** Column visibility only — header/field mapping lives in dashboardConfig. */
   COLUMN_ID: 'dashboard.column.id',
   COLUMN_APPLICANT: 'dashboard.column.applicant',
   COLUMN_DAYS_IN_QUEUE: 'dashboard.column.days_in_queue',
   COLUMN_DAYS_IN_REVIEW: 'dashboard.column.days_in_review',
   COLUMN_REVIEW_STATUS: 'dashboard.column.review_status',
+  /** O_* roles — maps to field `obsAnalyst` in O column catalog. */
   COLUMN_OBS_ANALYST: 'dashboard.column.obs_analyst',
+  /** Q_* roles — maps to field `qcAnalyst` in Q column catalog. */
   COLUMN_QC_ANALYST: 'dashboard.column.qc_analyst',
   COLUMN_BANKER: 'dashboard.column.banker',
 

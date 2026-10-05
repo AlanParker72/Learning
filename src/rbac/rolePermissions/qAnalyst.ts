@@ -18,13 +18,12 @@ export const Q_ANALYST_PERMISSIONS = [
   Permission.FILTER_APPLICANT_NAME,
   Permission.FILTER_ID,
 
-  // Columns
+  // Columns (visibility only — mapping is in dashboardConfig)
   Permission.COLUMN_ID,
   Permission.COLUMN_APPLICANT,
   Permission.COLUMN_DAYS_IN_QUEUE,
   Permission.COLUMN_DAYS_IN_REVIEW,
   Permission.COLUMN_REVIEW_STATUS,
-  Permission.COLUMN_OBS_ANALYST,
   Permission.COLUMN_QC_ANALYST,
   Permission.COLUMN_BANKER,
 

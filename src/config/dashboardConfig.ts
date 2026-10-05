@@ -19,56 +19,76 @@ const FILTERS: FilterDef[] = [
   }
 ]
 
-/** Shared table columns — each gated by its own permission. */
-const COLUMNS: ColumnDef[] = [
-  {
-    id: 'idNumber',
-    label: 'ID #',
-    field: 'idNumber',
-    requiredPermission: Permission.COLUMN_ID
-  },
-  {
-    id: 'applicant',
-    label: 'Applicant',
-    field: 'applicant',
-    requiredPermission: Permission.COLUMN_APPLICANT
-  },
-  {
-    id: 'daysInQueue',
-    label: 'Days in Queue',
-    field: 'daysInQueue',
-    requiredPermission: Permission.COLUMN_DAYS_IN_QUEUE
-  },
-  {
-    id: 'daysInReview',
-    label: 'Days in Review',
-    field: 'daysInReview',
-    requiredPermission: Permission.COLUMN_DAYS_IN_REVIEW
-  },
-  {
-    id: 'reviewStatus',
-    label: 'Review Status',
-    field: 'reviewStatus',
-    requiredPermission: Permission.COLUMN_REVIEW_STATUS
-  },
-  {
-    id: 'obsAnalyst',
-    label: 'OBS Analyst',
-    field: 'obsAnalyst',
-    requiredPermission: Permission.COLUMN_OBS_ANALYST
-  },
-  {
-    id: 'qcAnalyst',
-    label: 'QC Analyst',
-    field: 'qcAnalyst',
-    requiredPermission: Permission.COLUMN_QC_ANALYST
-  },
-  {
-    id: 'banker',
-    label: 'Banker',
-    field: 'banker',
-    requiredPermission: Permission.COLUMN_BANKER
-  }
+/** Shared column defs — same `field` keys for Q and O; visibility via COLUMN_* grants. */
+const COL_ID: ColumnDef = {
+  id: 'idNumber',
+  header: 'ID #',
+  field: 'idNumber',
+  requiredPermission: Permission.COLUMN_ID
+}
+const COL_APPLICANT: ColumnDef = {
+  id: 'applicant',
+  header: 'Applicant',
+  field: 'applicant',
+  requiredPermission: Permission.COLUMN_APPLICANT
+}
+const COL_DAYS_IN_QUEUE: ColumnDef = {
+  id: 'daysInQueue',
+  header: 'Days in Queue',
+  field: 'daysInQueue',
+  requiredPermission: Permission.COLUMN_DAYS_IN_QUEUE
+}
+const COL_DAYS_IN_REVIEW: ColumnDef = {
+  id: 'daysInReview',
+  header: 'Days in Review',
+  field: 'daysInReview',
+  requiredPermission: Permission.COLUMN_DAYS_IN_REVIEW
+}
+const COL_REVIEW_STATUS: ColumnDef = {
+  id: 'reviewStatus',
+  header: 'Review Status',
+  field: 'reviewStatus',
+  requiredPermission: Permission.COLUMN_REVIEW_STATUS
+}
+const COL_BANKER: ColumnDef = {
+  id: 'banker',
+  header: 'Banker',
+  field: 'banker',
+  requiredPermission: Permission.COLUMN_BANKER
+}
+const COL_QC_ANALYST: ColumnDef = {
+  id: 'qcAnalyst',
+  header: 'QC Analyst',
+  field: 'qcAnalyst',
+  requiredPermission: Permission.COLUMN_QC_ANALYST
+}
+const COL_OBS_ANALYST: ColumnDef = {
+  id: 'obsAnalyst',
+  header: 'OBS Analyst',
+  field: 'obsAnalyst',
+  requiredPermission: Permission.COLUMN_OBS_ANALYST
+}
+
+/** Q_* catalog: QC Analyst column (`field: 'qcAnalyst'`). */
+const Q_COLUMNS: ColumnDef[] = [
+  COL_ID,
+  COL_APPLICANT,
+  COL_DAYS_IN_QUEUE,
+  COL_DAYS_IN_REVIEW,
+  COL_REVIEW_STATUS,
+  COL_QC_ANALYST,
+  COL_BANKER
+]
+
+/** O_* catalog: OBS Analyst column (`field: 'obsAnalyst'`). */
+const O_COLUMNS: ColumnDef[] = [
+  COL_ID,
+  COL_APPLICANT,
+  COL_DAYS_IN_QUEUE,
+  COL_DAYS_IN_REVIEW,
+  COL_REVIEW_STATUS,
+  COL_OBS_ANALYST,
+  COL_BANKER
 ]
 
 function tab(
@@ -86,37 +106,38 @@ function tab(
   }
 }
 
-/** Catalog of tabs. Roles see a subset via `ROLE_PERMISSIONS` + `filterByPermission`. */
-const TABS = {
-  unassigned: tab('unassigned', 'Unassigned', COLUMNS, true),
-  team_tasks: tab('team_tasks', 'Team Tasks', COLUMNS, true),
-  my_tasks: tab('my_tasks', 'My Tasks', COLUMNS),
-  completed: tab('completed', 'Completed', COLUMNS)
-} as const
-
-function withColumnAction(columns: ColumnDef[], columnId: string, actionId: string): ColumnDef[] {
+function withColumnAction(
+  columns: ColumnDef[],
+  columnId: string,
+  actionId: string
+): ColumnDef[] {
   return columns.map((c) => (c.id === columnId ? { ...c, actionId } : c))
 }
 
-const MANAGER_TABS: TabDef[] = [
-  TABS.unassigned,
-  TABS.team_tasks,
-  TABS.completed
-]
+function managerTabs(columns: ColumnDef[]): TabDef[] {
+  return [
+    tab('unassigned', 'Unassigned', columns, true),
+    tab('team_tasks', 'Team Tasks', columns, true),
+    tab('completed', 'Completed', columns)
+  ]
+}
 
-const ANALYST_TABS: TabDef[] = [
-  tab(
-    'my_tasks',
-    'My Tasks',
-    withColumnAction(COLUMNS, 'qcAnalyst', 'claim')
-  ),
-  tab(
-    'unassigned',
-    'Unassigned',
-    withColumnAction(COLUMNS, 'qcAnalyst', 'assign_to_me'),
-    true
-  )
-]
+/** Analyst tabs: row actions attach to the domain analyst column. */
+function analystTabs(columns: ColumnDef[], analystColumnId: string): TabDef[] {
+  return [
+    tab(
+      'my_tasks',
+      'My Tasks',
+      withColumnAction(columns, analystColumnId, 'claim')
+    ),
+    tab(
+      'unassigned',
+      'Unassigned',
+      withColumnAction(columns, analystColumnId, 'assign_to_me'),
+      true
+    )
+  ]
+}
 
 const MANAGER_ACTIONS: ActionDef[] = [
   {
@@ -145,12 +166,12 @@ const ANALYST_ACTIONS: ActionDef[] = [
 /**
  * Per-role dashboard layout.
  *
- * Visible pieces = items whose `requiredPermission` is in that role’s file under
- * `src/rbac/rolePermissions/<role>.ts` (checked via `can()` / `filterByPermission`).
+ * **Visibility** of a column = `COLUMN_*` granted in `rolePermissions/<role>.ts`.
+ * **Mapping** (header + field) = entries below; table reads `row[column.field]`.
  *
  * Managers: Unassigned / Team Tasks / Completed.
  * Analysts: My Tasks / Unassigned.
- * Q_* vs O_* differ by title/domain (requestGroup), not by tab ids.
+ * Q_* vs O_* differ by title/domain (requestGroup) and analyst column catalog.
  */
 export const dashboardConfigByRole: Record<Role, DashboardConfig> = {
   [Role.Q_MANAGER]: {
@@ -159,7 +180,7 @@ export const dashboardConfigByRole: Record<Role, DashboardConfig> = {
     subtitle: 'QC Analyst Manager',
     subtitleRequiredPermission: Permission.HEADING_SUBTITLE,
     defaultTab: 'unassigned',
-    tabs: MANAGER_TABS,
+    tabs: managerTabs(Q_COLUMNS),
     filters: FILTERS,
     actions: MANAGER_ACTIONS
   },
@@ -169,7 +190,7 @@ export const dashboardConfigByRole: Record<Role, DashboardConfig> = {
     subtitle: 'QC Analyst',
     subtitleRequiredPermission: Permission.HEADING_SUBTITLE,
     defaultTab: 'my_tasks',
-    tabs: ANALYST_TABS,
+    tabs: analystTabs(Q_COLUMNS, 'qcAnalyst'),
     filters: FILTERS,
     actions: ANALYST_ACTIONS
   },
@@ -179,7 +200,7 @@ export const dashboardConfigByRole: Record<Role, DashboardConfig> = {
     subtitle: 'OBS Manager',
     subtitleRequiredPermission: Permission.HEADING_SUBTITLE,
     defaultTab: 'unassigned',
-    tabs: MANAGER_TABS,
+    tabs: managerTabs(O_COLUMNS),
     filters: FILTERS,
     actions: MANAGER_ACTIONS
   },
@@ -189,7 +210,7 @@ export const dashboardConfigByRole: Record<Role, DashboardConfig> = {
     subtitle: 'OBS Analyst',
     subtitleRequiredPermission: Permission.HEADING_SUBTITLE,
     defaultTab: 'my_tasks',
-    tabs: ANALYST_TABS,
+    tabs: analystTabs(O_COLUMNS, 'obsAnalyst'),
     filters: FILTERS,
     actions: ANALYST_ACTIONS
   }

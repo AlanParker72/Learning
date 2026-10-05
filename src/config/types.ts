@@ -3,13 +3,19 @@ import type { DashboardTableRow } from '../types/workflow'
 
 export type FilterFieldType = 'text' | 'select' | 'date'
 
+/**
+ * Table column mapping (label + data field) lives in dashboardConfig.
+ * Visibility is gated by `requiredPermission` (`COLUMN_*`) granted in role files.
+ */
 export type ColumnDef = {
   id: string
-  label: string
-  /** Field key on `DashboardTableRow`; defaults to `id`. */
-  field?: keyof DashboardTableRow | string
+  /** Column header label shown in the table. */
+  header: string
+  /** Key on the flat mapped row (`DashboardTableRow` / mapper output). */
+  field: keyof DashboardTableRow | string
   width?: number | string
-  requiredPermission?: Permission
+  /** Must be granted in the role’s permission file for this column to appear. */
+  requiredPermission: Permission
   /** Optional row action rendered in this column (e.g. Claim). */
   actionId?: string
 }

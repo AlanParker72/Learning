@@ -106,7 +106,7 @@ export function DashboardTable({
                 </TableCell>
               ) : null}
               {columns.map((col) => (
-                <TableCell key={col.id}>{col.label}</TableCell>
+                <TableCell key={col.id}>{col.header}</TableCell>
               ))}
             </TableRow>
           </TableHead>
@@ -170,8 +170,8 @@ function CellContent({
   action?: ActionDef
   onRowAction: (actionId: string, row: DashboardTableRow) => void
 }) {
-  const field = (column.field ?? column.id) as keyof DashboardTableRow
-  const raw = row[field]
+  // Flat row from workflowMapper; no role switches — config supplies `field`.
+  const raw = row[column.field as keyof DashboardTableRow]
   const display =
     raw == null || raw === '' || typeof raw === 'object' ? '—' : String(raw)
 
