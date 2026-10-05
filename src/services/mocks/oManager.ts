@@ -87,6 +87,23 @@ export const MOCK_O_MANAGER: RoleMockSeeds = {
       status: 'COMPLETED',
       description: 'O Manager — completed',
       priority: 28
+    },
+    {
+      id: 'o-m-2895',
+      applicant: 'Owen Blake',
+      obsAnalyst: 'K. Sato',
+      qcAnalyst: 'N. West',
+      banker: 'D. Hale',
+      reviewStatus: 'Completed',
+      startedDaysAgo: 40,
+      taskDaysAgo: 38,
+      claimDaysAgo: 35,
+      endDaysAgo: 20,
+      assignee: 'N. West',
+      state: 'COMPLETED',
+      status: 'COMPLETED',
+      description: 'O Manager — completed (outside default month)',
+      priority: 22
     }
   ]
 }

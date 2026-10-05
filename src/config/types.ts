@@ -1,7 +1,13 @@
 import type { Permission } from '../rbac/permissions'
 import type { DashboardTableRow } from '../types/workflow'
 
-export type FilterFieldType = 'text' | 'select' | 'date'
+/** UI control type — DashboardFilters renders by this, not by filter id. */
+export type FilterFieldType =
+  | 'text'
+  | 'select'
+  | 'date'
+  | 'dateRangePreset'
+  | 'dateRangePill'
 
 /**
  * Table column mapping (label + data field) lives in each role’s dashboard config.
@@ -20,11 +26,13 @@ export type ColumnDef = {
   actionId?: string
 }
 
+export type ActionPlacement = 'row' | 'bulk' | 'header' | 'filterBar'
+
 export type ActionDef = {
   id: string
   label: string
   requiredPermission?: Permission
-  placement: 'row' | 'bulk' | 'header'
+  placement: ActionPlacement
 }
 
 export type FilterDef = {
@@ -34,6 +42,13 @@ export type FilterDef = {
   placeholder?: string
   options?: readonly { value: string; label: string }[]
   requiredPermission?: Permission
+  /**
+   * For `dateRangePill`: which applied filter keys hold the range.
+   * Defaults to `{ start: 'startDate', end: 'endDate' }`.
+   */
+  rangeKeys?: { start: string; end: string }
+  /** Optional initial value when the tab/role hydrates filters. */
+  defaultValue?: string
 }
 
 export type TabDef = {
@@ -47,6 +62,11 @@ export type TabDef = {
    * When omitted, the shell falls back to `DashboardConfig.filters`.
    */
   filters?: FilterDef[]
+  /**
+   * Actions for this tab (e.g. filter-bar Apply / Clear).
+   * Merged with role-level `DashboardConfig.actions` (tab wins on same id).
+   */
+  actions?: ActionDef[]
   selectable?: boolean
 }
 

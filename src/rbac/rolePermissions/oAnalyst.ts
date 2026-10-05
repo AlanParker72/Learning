@@ -1,5 +1,9 @@
 import type { DashboardConfig } from '../../config/types'
-import { ACTION_ASSIGN_TO_ME, ACTION_CLAIM } from '../catalog/actions'
+import {
+  ACTION_ASSIGN_TO_ME,
+  ACTION_CLAIM,
+  ACTION_CLEAR_FILTERS
+} from '../catalog/actions'
 import {
   COL_APPLICANT,
   COL_BANKER,
@@ -44,7 +48,8 @@ export const O_ANALYST_PERMISSIONS = [
 
   // Actions
   Permission.ACTION_CLAIM,
-  Permission.ACTION_ASSIGN_TO_ME
+  Permission.ACTION_ASSIGN_TO_ME,
+  Permission.ACTION_CLEAR_FILTERS
 ] as const satisfies readonly Permission[]
 
 const O_ANALYST_COLUMNS = [
@@ -69,7 +74,8 @@ export const O_ANALYST_DASHBOARD: DashboardConfig = {
       label: 'My Tasks',
       requiredPermission: Permission.TAB_MY_TASKS,
       filters: [FILTER_APPLICANT_NAME, FILTER_ID],
-      columns: withColumnAction(O_ANALYST_COLUMNS, 'obsAnalyst', 'claim')
+      columns: withColumnAction(O_ANALYST_COLUMNS, 'obsAnalyst', 'claim'),
+      actions: [ACTION_CLEAR_FILTERS]
     },
     {
       id: 'unassigned',
@@ -77,7 +83,8 @@ export const O_ANALYST_DASHBOARD: DashboardConfig = {
       requiredPermission: Permission.TAB_UNASSIGNED,
       filters: [FILTER_APPLICANT_NAME, FILTER_ID],
       columns: withColumnAction(O_ANALYST_COLUMNS, 'obsAnalyst', 'assign_to_me'),
-      selectable: true
+      selectable: true,
+      actions: [ACTION_CLEAR_FILTERS]
     }
   ],
   actions: [ACTION_CLAIM, ACTION_ASSIGN_TO_ME]

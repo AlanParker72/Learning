@@ -64,6 +64,8 @@ export type DashboardTableRow = {
   applicant: string
   daysInQueue: number | string
   daysInReview: number | string
+  /** Formatted completion date (Completed tab); `—` when unset. */
+  dateCompleted: string
   reviewStatus: string
   obsAnalyst: string
   qcAnalyst: string

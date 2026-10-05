@@ -1,4 +1,5 @@
 import type { DashboardTableRow, WorkflowTaskItem } from '../types/workflow'
+import { formatDisplayDate } from '../utils/dateRange'
 
 const UNASSIGNED_LABEL = 'Unassigned'
 
@@ -10,7 +11,8 @@ export const VARIABLE_KEYS = {
   banker: ['banker', 'bankerName', 'relationshipManager'],
   reviewStatus: ['reviewStatus', 'review_status', 'qcStatus'],
   daysInQueue: ['daysInQueue', 'days_in_queue'],
-  daysInReview: ['daysInReview', 'days_in_review']
+  daysInReview: ['daysInReview', 'days_in_review'],
+  dateCompleted: ['dateCompleted', 'date_completed', 'completedAt', 'completedDate']
 } as const
 
 function firstVariable(
@@ -38,9 +40,24 @@ function displayOrUnassigned(value: string | null | undefined): string {
   return String(value)
 }
 
+function formatDateCompleted(
+  vars: Record<string, string> | undefined,
+  endTime: string | null | undefined
+): string {
+  const fromVar = firstVariable(vars, VARIABLE_KEYS.dateCompleted)
+  const raw = fromVar || endTime
+  if (!raw) return '—'
+  // Accept ISO datetime or YYYY-MM-DD
+  const isoDay = raw.slice(0, 10)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(isoDay)) return formatDisplayDate(isoDay)
+  const d = new Date(raw)
+  if (Number.isNaN(d.getTime())) return raw
+  return formatDisplayDate(d.toISOString().slice(0, 10))
+}
+
 /**
  * Single place: workflow API item → flat table display row.
- * Keys (`idNumber`, `applicant`, `qcAnalyst`, `obsAnalyst`, …) match
+ * Keys (`idNumber`, `applicant`, `qcAnalyst`, `obsAnalyst`, `dateCompleted`, …) match
  * `ColumnDef.field` in the role’s dashboard config. Table reads `row[column.field]`.
  * Prefer `variables` keys; fall back to task/process fields.
  */
@@ -89,6 +106,8 @@ export function mapWorkflowItemToRow(item: WorkflowTaskItem): DashboardTableRow 
 
   const banker = displayOrUnassigned(firstVariable(vars, VARIABLE_KEYS.banker))
 
+  const dateCompleted = formatDateCompleted(vars, item.endTime)
+
   return {
     id: item.processInstanceId || task?.taskId || idNumber,
     taskId: task?.taskId ?? null,
@@ -96,6 +115,7 @@ export function mapWorkflowItemToRow(item: WorkflowTaskItem): DashboardTableRow 
     applicant,
     daysInQueue,
     daysInReview,
+    dateCompleted,
     reviewStatus,
     obsAnalyst,
     qcAnalyst,
@@ -110,16 +130,38 @@ export function mapWorkflowItemsToRows(
   return items.map(mapWorkflowItemToRow)
 }
 
+function parseRowDate(displayOrIso: string): Date | null {
+  if (!displayOrIso || displayOrIso === '—') return null
+  // MM/DD/YYYY from mapper
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(displayOrIso)
+  if (m) {
+    const d = new Date(Number(m[3]), Number(m[1]) - 1, Number(m[2]))
+    return Number.isNaN(d.getTime()) ? null : d
+  }
+  const d = new Date(displayOrIso)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
 /**
- * Client-side name / ID# filters applied after the role+tab scoped fetch.
+ * Client-side name / ID# / date-range filters after the role+tab scoped fetch.
  * (Request body has no dedicated applicant/businessKey fields yet.)
  */
 export function applyClientFilters(
   rows: DashboardTableRow[],
-  filters: { applicantName?: string; id?: string }
+  filters: {
+    applicantName?: string
+    id?: string
+    startDate?: string
+    endDate?: string
+  }
 ): DashboardTableRow[] {
   const nameQ = (filters.applicantName ?? '').trim().toLowerCase()
   const idQ = (filters.id ?? '').trim().toLowerCase()
+  const start = (filters.startDate ?? '').trim()
+  const end = (filters.endDate ?? '').trim()
+  const startD = start ? new Date(`${start}T00:00:00`) : null
+  const endD = end ? new Date(`${end}T23:59:59`) : null
+
   return rows.filter((row) => {
     if (nameQ && !row.applicant.toLowerCase().includes(nameQ)) return false
     if (
@@ -128,6 +170,12 @@ export function applyClientFilters(
       !(row.taskId ?? '').toLowerCase().includes(idQ)
     ) {
       return false
+    }
+    if (startD || endD) {
+      const completed = parseRowDate(row.dateCompleted)
+      if (!completed) return false
+      if (startD && completed < startD) return false
+      if (endD && completed > endD) return false
     }
     return true
   })

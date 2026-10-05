@@ -87,6 +87,23 @@ export const MOCK_Q_MANAGER: RoleMockSeeds = {
       status: 'COMPLETED',
       description: 'Q Manager — completed',
       priority: 30
+    },
+    {
+      id: 'q-m-0988',
+      applicant: 'Casey Brooks',
+      obsAnalyst: 'L. Nguyen',
+      qcAnalyst: 'C. Park',
+      banker: 'K. Diaz',
+      reviewStatus: 'Completed',
+      startedDaysAgo: 28,
+      taskDaysAgo: 26,
+      claimDaysAgo: 22,
+      endDaysAgo: 8,
+      assignee: 'C. Park',
+      state: 'COMPLETED',
+      status: 'COMPLETED',
+      description: 'Q Manager — completed (older)',
+      priority: 25
     }
   ]
 }

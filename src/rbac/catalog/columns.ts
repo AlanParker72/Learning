@@ -34,6 +34,13 @@ export const COL_DAYS_IN_REVIEW: ColumnDef = {
   requiredPermission: Permission.COLUMN_DAYS_IN_REVIEW
 }
 
+export const COL_DATE_COMPLETED: ColumnDef = {
+  id: 'dateCompleted',
+  header: 'Date Completed',
+  field: 'dateCompleted',
+  requiredPermission: Permission.COLUMN_DATE_COMPLETED
+}
+
 export const COL_REVIEW_STATUS: ColumnDef = {
   id: 'reviewStatus',
   header: 'Review Status',

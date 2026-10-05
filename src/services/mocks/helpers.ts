@@ -82,6 +82,9 @@ export function buildItem(
   if (tab === 'completed') {
     variables.daysInQueue = '5'
     variables.daysInReview = '14'
+    if (endTime) {
+      variables.dateCompleted = endTime.slice(0, 10)
+    }
   }
 
   return {

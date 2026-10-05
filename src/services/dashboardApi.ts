@@ -109,7 +109,9 @@ export async function getDashboardData(
     const items = mockItemsForTab(params.role, params.tab)
     const rows = applyClientFilters(mapWorkflowItemsToRows(items), {
       applicantName: params.filters.applicantName,
-      id: params.filters.id
+      id: params.filters.id,
+      startDate: params.filters.startDate,
+      endDate: params.filters.endDate
     })
     return {
       role: params.role,
@@ -123,7 +125,9 @@ export async function getDashboardData(
   const items = await fetchWorkflowTasks(params, page, size)
   const rows = applyClientFilters(mapWorkflowItemsToRows(items), {
     applicantName: params.filters.applicantName,
-    id: params.filters.id
+    id: params.filters.id,
+    startDate: params.filters.startDate,
+    endDate: params.filters.endDate
   })
 
   return {

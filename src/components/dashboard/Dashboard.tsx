@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Alert,
   Box,
@@ -11,6 +11,7 @@ import {
   filterByPermission,
   getDashboardConfig
 } from '../../config/dashboardConfig'
+import type { ActionDef } from '../../config/types'
 import { useDashboardData } from '../../hooks/useDashboardData'
 import { Can } from '../../rbac/Can'
 import { Permission } from '../../rbac/permissions'
@@ -23,6 +24,17 @@ import { DashboardFilters as DashboardFiltersBar } from './DashboardFilters'
 import { DashboardHeader } from './DashboardHeader'
 import { DashboardTable } from './DashboardTable'
 import { DashboardTabs } from './DashboardTabs'
+
+function mergeActions(
+  roleActions: ActionDef[],
+  tabActions: ActionDef[] | undefined
+): ActionDef[] {
+  const byId = new Map<string, ActionDef>()
+  for (const a of roleActions) byId.set(a.id, a)
+  // Tab actions win on the same id (e.g. Clear All label).
+  for (const a of tabActions ?? []) byId.set(a.id, a)
+  return [...byId.values()]
+}
 
 /**
  * Generic dashboard shell — role differences come from config + permissions.
@@ -39,26 +51,31 @@ export function Dashboard() {
   const selectedIds = useDashboardStore((s) => s.selectedIds)
   const setActiveTab = useDashboardStore((s) => s.setActiveTab)
   const setFilter = useDashboardStore((s) => s.setFilter)
+  const setFilters = useDashboardStore((s) => s.setFilters)
+  const clearFilterKeys = useDashboardStore((s) => s.clearFilterKeys)
   const resetFilters = useDashboardStore((s) => s.resetFilters)
+  const hydrateFiltersFromDefs = useDashboardStore(
+    (s) => s.hydrateFiltersFromDefs
+  )
   const toggleSelected = useDashboardStore((s) => s.toggleSelected)
   const setSelectedIds = useDashboardStore((s) => s.setSelectedIds)
   const clearSelection = useDashboardStore((s) => s.clearSelection)
   const hydrateForRole = useDashboardStore((s) => s.hydrateForRole)
 
   const [toast, setToast] = useState<string | null>(null)
+  const prevTabRef = useRef<string | null>(null)
 
   const config = getDashboardConfig(activeRole)
   const visibleTabs = filterByPermission(config.tabs, can)
-  const visibleActions = filterByPermission(config.actions, can)
-
-  const headerActions = visibleActions.filter((a) => a.placement === 'header')
-  const tableActions = visibleActions.filter(
-    (a) => a.placement === 'row' || a.placement === 'bulk'
-  )
 
   // Reset tab/filters when temp role changes (not on every tab click)
   useEffect(() => {
-    hydrateForRole(getDashboardConfig(activeRole).defaultTab)
+    const cfg = getDashboardConfig(activeRole)
+    const defaultTabDef =
+      cfg.tabs.find((t) => t.id === cfg.defaultTab) ?? cfg.tabs[0]
+    const defs = defaultTabDef?.filters ?? cfg.filters ?? []
+    hydrateForRole(cfg.defaultTab, defs)
+    prevTabRef.current = cfg.defaultTab
   }, [activeRole, hydrateForRole])
 
   useEffect(() => {
@@ -75,6 +92,29 @@ export function Dashboard() {
   // Per-tab filters first; fall back to optional role-level list.
   const tabFilters = activeTabDef?.filters ?? config.filters ?? []
   const visibleFilters = filterByPermission(tabFilters, can)
+
+  // Re-hydrate filter values when the active tab’s filter set changes.
+  useEffect(() => {
+    if (!activeTabDef) return
+    if (prevTabRef.current === activeTabDef.id) return
+    prevTabRef.current = activeTabDef.id
+    hydrateFiltersFromDefs(activeTabDef.filters ?? config.filters ?? [])
+  }, [activeTabDef, config.filters, hydrateFiltersFromDefs])
+
+  const mergedActions = useMemo(
+    () => mergeActions(config.actions, activeTabDef?.actions),
+    [config.actions, activeTabDef?.actions]
+  )
+  const visibleActions = filterByPermission(mergedActions, can)
+
+  const headerActions = visibleActions.filter((a) => a.placement === 'header')
+  const filterBarActions = visibleActions.filter(
+    (a) => a.placement === 'filterBar'
+  )
+  const tableActions = visibleActions.filter(
+    (a) => a.placement === 'row' || a.placement === 'bulk'
+  )
+  const hasBulkSelect = visibleActions.some((a) => a.id === 'bulk_select')
 
   const visibleColumns = activeTabDef
     ? filterByPermission(activeTabDef.columns, can)
@@ -140,9 +180,20 @@ export function Dashboard() {
 
           <DashboardFiltersBar
             filters={visibleFilters}
+            actions={filterBarActions}
             values={filters}
             onChange={setFilter}
+            onSetFilters={setFilters}
+            onClearKeys={clearFilterKeys}
             onReset={resetFilters}
+            onAction={(actionId) => {
+              if (
+                actionId !== 'clear_filters' &&
+                actionId !== 'apply_date_filter'
+              ) {
+                setToast(actionId)
+              }
+            }}
           />
 
           <Can permission={Permission.WIDGET_TABLE}>
@@ -156,8 +207,10 @@ export function Dashboard() {
               <DashboardTable
                 columns={visibleColumns}
                 rows={data?.rows ?? []}
-                actions={tableActions}
-                selectable={Boolean(activeTabDef?.selectable)}
+                actions={tableActions.filter((a) => a.id !== 'bulk_select')}
+                selectable={
+                  Boolean(activeTabDef?.selectable) || hasBulkSelect
+                }
                 selectedIds={selectedIds}
                 onToggleSelected={toggleSelected}
                 onSelectAll={setSelectedIds}
