@@ -45,7 +45,7 @@ const PAGE_SIZE = 10
  *
  * Data: `useDashboard` → Zustand (`isLoading` / `dashboardData` / `error`) +
  * mock `getDashboardData` (no React Query).
- * Filters: form config → FilterBar (`Fields`) — closed chip → expand control.
+ * Filters: temporarily disabled in UI — see TODO below.
  * Table: company DataTable pattern (Spinner | Alert | DataTable | NoResultsView).
  */
 export function Dashboard() {
@@ -53,8 +53,9 @@ export function Dashboard() {
   const { can } = usePermission()
 
   const {
-    Form,
-    Fields,
+    // TODO: restore filters — Form / Fields (FilterBar) UI
+    // Form,
+    // Fields,
     isLoading,
     dashboardData,
     error,
@@ -226,6 +227,7 @@ export function Dashboard() {
             onChange={setActiveTab}
           />
 
+          {/* TODO: restore filters — FilterBar / Fields / filter form UI
           <Form>
             <Fields
               onAction={(actionId) => {
@@ -235,6 +237,7 @@ export function Dashboard() {
               }}
             />
           </Form>
+          */}
 
           <Can permission={Permission.WIDGET_TABLE}>
             {showSpinner ? <Spinner /> : null}
