@@ -5,9 +5,8 @@ import { Permission } from '../permissions'
  * O_MANAGER — Onboarding manager.
  * This file owns both the permission list and this role’s dashboard config.
  *
- * Unassigned: Applicant Name + ID# + Status (inline).
- * Team Work: name inline; ID Number chip→expand + apply/clear; Status.
- * Completed: preset + date-range pill + Clear All (global action).
+ * Unassigned / Team Work search filters: chip triggers → expand (form config).
+ * Completed: preset + date-range pill (inline) + Clear All (global action).
  */
 
 export const O_MANAGER_PERMISSIONS = [
@@ -54,14 +53,14 @@ const O_MANAGER_COMPLETED_COLUMNS = [
   { id: 'banker', header: 'Banker', field: 'banker' }
 ]
 
-/** Unassigned: name, ID#, Status — all inline. */
+/** Unassigned: Applicant Name, ID#, Status — chip/expand from form config. */
 const UNASSIGNED_FILTER_PERMISSIONS = [
   Permission.FILTER_APPLICANT_NAME,
   Permission.FILTER_ID,
   Permission.FILTER_STATUS
 ]
 
-/** Team Work: name inline; ID Number chip; Status. */
+/** Team Work: Applicant Name, ID Number, Status — chip/expand from form config. */
 const TEAM_WORK_FILTER_PERMISSIONS = [
   Permission.FILTER_APPLICANT_NAME,
   Permission.FILTER_ID_NUMBER,

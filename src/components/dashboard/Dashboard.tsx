@@ -45,7 +45,7 @@ const PAGE_SIZE = 10
  *
  * Data: `useDashboard` → Zustand (`isLoading` / `dashboardData` / `error`) +
  * mock `getDashboardData` (no React Query).
- * Filters: JSON form config → stub `useFormConfig` → `<Fields />`.
+ * Filters: form config → FilterBar (`Fields`) — closed chip → expand control.
  * Table: company DataTable pattern (Spinner | Alert | DataTable | NoResultsView).
  */
 export function Dashboard() {

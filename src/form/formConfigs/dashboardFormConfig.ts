@@ -20,13 +20,19 @@ function currentMonthRangeDefault(): string {
  * Extra keys (`presentation`, `controls`, `name`) support our filter UX until DSP lands.
  */
 export const DASHBOARD_FORM_FIELDS = {
+  /**
+   * Search-style text — closed chip (search icon + label), expands to text +
+   * apply/clear. Prefer chip/expand for search fields (hybrid filter bar).
+   */
   applicantName: {
     label: 'Applicant Name',
     inputType: 'text',
     name: 'applicantName',
     placeholder: 'Search by Applicant Name',
     validations: {},
-    presentation: 'inline',
+    presentation: 'chip',
+    expandOnClick: true,
+    controls: ['apply', 'clear'],
     requiredPermission: Permission.FILTER_APPLICANT_NAME
   },
   id: {
@@ -35,10 +41,12 @@ export const DASHBOARD_FORM_FIELDS = {
     name: 'id',
     placeholder: 'Search by ID#',
     validations: {},
-    presentation: 'inline',
+    presentation: 'chip',
+    expandOnClick: true,
+    controls: ['apply', 'clear'],
     requiredPermission: Permission.FILTER_ID
   },
-  /** Chip variant — same store key `id` as `id`, different presentation. */
+  /** Chip variant — same store key `id` as `id`, different label. */
   idNumber: {
     label: 'ID Number',
     inputType: 'text',
@@ -50,12 +58,18 @@ export const DASHBOARD_FORM_FIELDS = {
     controls: ['apply', 'clear'],
     requiredPermission: Permission.FILTER_ID_NUMBER
   },
+  /**
+   * Status — closed chip trigger (label); expands to select from `options`.
+   * Select commits on change (no apply control).
+   */
   status: {
     label: 'Status',
     inputType: 'select',
     name: 'status',
     validations: {},
-    presentation: 'inline',
+    presentation: 'chip',
+    expandOnClick: true,
+    controls: ['clear'],
     defaultValue: '',
     options: [
       { value: '', label: 'All' },

@@ -30,7 +30,8 @@ export type UseDashboardResult = {
   /** Optional Form wrapper stub. */
   Form: typeof Form
   /**
-   * Bound Fields renderer for the active form config + filter-bar actions.
+   * Bound FilterBar (`Fields`) for the active form config + filter-bar actions.
+   * Closed chips from `presentation` / open controls from `inputType`.
    * Pass `onAction` for Clear All / other filter-bar toasts.
    */
   Fields: (props?: { onAction?: (actionId: string) => void }) => JSX.Element | null
@@ -62,7 +63,8 @@ export type UseDashboardResult = {
  * Pattern:
  * - Zustand store holds `isLoading` / `dashboardData` / `error` + filter UI state
  * - `fetchDashboard` → `getDashboardData` with async/await try/catch/finally
- * - Filters UI from JSON form config via stub `useFormConfig` + `<Fields />`
+ * - Filters UI: JSON form config → `useFormConfig` → FilterBar (`Fields`)
+ *   closed chip/trigger → expand → FormFieldControl(`inputType`)
  * - RBAC: `filterPermissions ∩ role` selects which form field keys appear
  */
 export function useDashboard(): UseDashboardResult {

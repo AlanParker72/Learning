@@ -1,9 +1,15 @@
 /**
  * Form stubs + dashboard JSON field catalog.
  *
- * TODO: swap `useFormConfig` / `Fields` / `Form` for the real company `@dsp` form lib.
+ * TODO: swap `useFormConfig` / `Fields` / `Form` / `FilterBar` for the real
+ * company `@dsp` form lib when available.
  */
 export { Fields, Form } from './Fields'
+export { FilterBar } from './FilterBar'
+export {
+  FormFieldControl,
+  validateFormField
+} from './FormFieldControl'
 export { useFormConfig } from './useFormConfig'
 export {
   DASHBOARD_FORM_FIELDS,

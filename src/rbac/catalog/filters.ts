@@ -12,7 +12,7 @@ import type { FormFieldConfig } from '../../form/types'
  * form field keys stay aligned.
  *
  * Tabs still list `filterPermissions` only; runtime intersects with role and
- * resolves here (and via `resolveFormConfigForTab` for the Fields renderer).
+ * resolves here (and via `resolveFormConfigForTab` for the FilterBar renderer).
  */
 
 function formFieldToFilterDef(field: FormFieldConfig): FilterDef {

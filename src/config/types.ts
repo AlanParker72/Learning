@@ -1,7 +1,7 @@
 import type { Permission } from '../rbac/permissions'
 import type { DashboardTableRow } from '../types/workflow'
 
-/** UI control type — DashboardFilters renders by this, not by filter id. */
+/** UI control type — FilterBar / FormFieldControl renders by this, not by filter id. */
 export type FilterFieldType =
   | 'text'
   | 'select'
@@ -12,7 +12,7 @@ export type FilterFieldType =
 /** Apply / clear live on the filter def — not separate ACTION_* grants. */
 export type FilterControl = 'apply' | 'clear'
 
-/** How DashboardFilters renders the filter before/while editing. */
+/** How FilterBar renders the filter before/while editing. */
 export type FilterPresentation = 'chip' | 'inline'
 
 /**
@@ -54,12 +54,12 @@ export type FilterDef = {
   /** Optional initial value when the tab/role hydrates filters. */
   defaultValue?: string
   /**
-   * `chip` = closed search-icon + label until expand; `inline` = always-visible.
-   * Only chip (+ expandOnClick) uses the icon-click pattern — not all filters.
-   * Defaults to `inline`.
+   * `chip` = closed trigger (icon+label for text; label for select) until expand;
+   * `inline` = always-visible control. Prefer chip for search-style fields.
+   * Sourced from form config (`dashboardFormConfig`) via the filter catalog.
    */
   presentation?: FilterPresentation
-  /** When true (default for chip), click expands to input + filter-owned controls. */
+  /** When true (default for chip), click expands to form-config control + controls. */
   expandOnClick?: boolean
   /**
    * Filter-owned actions (apply arrow, clear X). Do not require ACTION_APPLY /

@@ -32,10 +32,19 @@ export type FormFieldConfig = {
   name: string
   placeholder?: string
   options?: readonly FormFieldOption[]
-  /** Placeholder for DSP validation schema; unused by the stub. */
+  /**
+   * DSP-style validation map. Stub FilterBar uses `required` / `maxLength` /
+   * `pattern` on chip apply; full schema lands with the real form lib.
+   */
   validations?: Record<string, unknown>
+  /**
+   * `chip` = closed trigger → expand to FormFieldControl;
+   * `inline` = always-visible control (dates, presets).
+   */
   presentation?: FormFieldPresentation
+  /** When true (default for chip), click expands the closed trigger. */
   expandOnClick?: boolean
+  /** Per-field apply/clear icons when the expanded control should own them. */
   controls?: readonly FormFieldControl[]
   defaultValue?: string
   rangeKeys?: { start: string; end: string }
