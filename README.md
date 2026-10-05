@@ -1,7 +1,8 @@
-# RBAC Skeleton
+# RBAC Quality Control Dashboard
 
-Pure TypeScript RBAC scaffold: roles → permissions → `can()` / `<Can>` → config filtering.
-Minimal demo wiring only — **not** a full dashboard product.
+Config-driven dashboard: **Role → Permissions → dashboardConfig → Zustand → reusable Dashboard → TanStack Query → workflow API**.
+
+Primary UI mapping: **Q_MANAGER** Quality Control Requests (tabs, filters, table). Q_ANALYST uses My Tasks / Unassigned. O_* roles keep thin stubs.
 
 ## Quick start
 
@@ -20,44 +21,39 @@ npm run dev
 
 ```
 Role → ROLE_PERMISSIONS → can() / <Can>
-                      ↘ getDashboardConfig(role) → filterByPermission(tabs, can)
-                      ↘ getDashboardData({ role, tab, filters })  // stub
+                      ↘ getDashboardConfig(role) → filterByPermission(…)
+                      ↘ Zustand (activeTab, filters)
+                      ↘ useDashboardData → getDashboardData / fetchWorkflowTasks
 ```
+
+Presentational components use `can()` / `<Can>` and config `requiredPermission` — not `role === …`.
+
+## API (on load)
+
+`POST /workflow-mgmt/v1/api/workflow/tasks/{task_id}/claim?page=0&size=10`  
+Body built from role + activeTab + filters. See `src/services/dashboardApi.ts`.
+
+Mock mode (`VITE_USE_MOCK_API=true`, default) returns realistic workflow rows.  
+**Backend must authorize from session** — client role is not security.
 
 ## How to add a role
 
-1. `src/rbac/roles.ts` — add the role key + label.
-2. `src/rbac/rolePermissions.ts` — declare its permission list.
-3. `src/config/dashboardConfig.ts` — tabs with optional `requiredPermission`.
-4. `src/services/dashboardApi.ts` — implement fetch when the API exists.
-5. Backend grants for the same capabilities (required for production).
-
-Do **not** add `role === "…"` branches in presentational UI — use `can()` / `<Can>`.
-
-## Key paths
-
-| Concern | Path |
-| --- | --- |
-| Roles | `src/rbac/roles.ts` |
-| Permissions | `src/rbac/permissions.ts` |
-| Role → permissions | `src/rbac/rolePermissions.ts` |
-| `can()` / `<Can />` | `src/rbac/usePermission.ts`, `src/rbac/Can.tsx` |
-| Barrel | `src/rbac/index.ts` |
-| Config filter pattern | `src/config/dashboardConfig.ts` |
-| Auth (temp role) | `src/store/authStore.ts` |
-| API stub | `src/services/dashboardApi.ts` |
-| Demo shell | `src/components/dashboard/Dashboard.tsx` |
-| Temp RoleSwitcher | `src/components/dashboard/RoleSwitcher.tsx` |
+1. `src/rbac/roles.ts` — role key + label.
+2. `src/rbac/rolePermissions.ts` — permission list.
+3. `src/config/dashboardConfig.ts` — tabs / filters / columns / actions with `requiredPermission`.
+4. Mock / API mapping in `src/services/` as needed.
+5. Backend grants for the same capabilities.
 
 ## Removing the temp RoleSwitcher
 
 1. Delete `src/components/dashboard/RoleSwitcher.tsx`.
-2. Remove its import/usage from `Dashboard.tsx`.
+2. Remove its usage from `DashboardHeader.tsx`.
 3. Point `authStore` at real session/auth.
 
 ## Environment
 
 Copy `.env.example` → `.env`:
 
-- `VITE_USE_MOCK_API=true` — empty placeholder from `getDashboardData` (default)
+- `VITE_USE_MOCK_API=true` — mock workflow rows (default)
 - `VITE_API_BASE_URL` — axios `baseURL` when mock is off
+- `VITE_WORKFLOW_TASK_ID` — optional list-on-load path `{task_id}`

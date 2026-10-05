@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 /**
- * Shared Axios stub.
+ * Shared Axios instance.
  *
  * SECURITY: Real auth must attach session credentials here. The API must
  * derive role/permissions from the server session — never trust a client-sent

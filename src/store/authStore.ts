@@ -13,7 +13,7 @@ type AuthState = {
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  roles: [Role.O_MANAGER],
-  activeRole: Role.O_MANAGER,
+  roles: [Role.Q_MANAGER],
+  activeRole: Role.Q_MANAGER,
   setActiveRole: (role) => set({ activeRole: role, roles: [role] })
 }))
