@@ -2,7 +2,7 @@ import type { Role } from '../rbac/roles'
 import type { DashboardDataResponse, DashboardFilters } from '../config/types'
 import type { WorkflowTaskItem, WorkflowTasksRequest } from '../types/workflow'
 import { apiClient } from './apiClient'
-import { mockItemsForTab, mockTabCounts } from './mockWorkflowData'
+import { mockItemsForTab, mockTabCounts } from './mocks'
 import {
   applyClientFilters,
   mapWorkflowItemsToRows
@@ -105,7 +105,7 @@ export async function getDashboardData(
 
   if (useMock) {
     await new Promise((r) => setTimeout(r, 160))
-    // Empty when role lacks the tab permission; otherwise shared tab seeds + domain.
+    // Empty when role lacks the tab permission; otherwise that role’s mock file + tab.
     const items = mockItemsForTab(params.role, params.tab)
     const rows = applyClientFilters(mapWorkflowItemsToRows(items), {
       applicantName: params.filters.applicantName,

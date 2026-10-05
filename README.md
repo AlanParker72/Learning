@@ -52,7 +52,7 @@ Mocks reuse the same tab ids — no per-role dataset copy.
 `POST /workflow-mgmt/v1/api/workflow/tasks/{task_id}/claim?page=0&size=10`  
 Body built from role + activeTab + filters. See `src/services/dashboardApi.ts`.
 
-Mock mode (`VITE_USE_MOCK_API=true`, default) returns shared tab seeds shaped like the API.  
+Mock mode (`VITE_USE_MOCK_API=true`, default) loads rows from that role’s file under `src/services/mocks/`.  
 No permission for the tab → empty list. `tabCounts` only for permitted tabs.  
 **Backend must authorize from session** — client role is not security.
 
@@ -61,7 +61,7 @@ No permission for the tab → empty list. `tabCounts` only for permitted tabs.
 1. `src/rbac/roles.ts` — role key + label.
 2. `src/rbac/rolePermissions.ts` — permission list (tabs/filters/columns/actions).
 3. `src/config/dashboardConfig.ts` — only if you need new titles or net-new tab/action entries.
-4. Mocks usually work as-is when reusing existing tab ids (`mockWorkflowData.ts`).
+4. Mocks — add `src/services/mocks/<role>.ts` and register it in `mocks/index.ts`.
 5. Backend grants for the same capabilities.
 
 ## Removing the temp RoleSwitcher
