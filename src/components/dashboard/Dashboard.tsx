@@ -7,6 +7,7 @@ import {
   Paper,
   Snackbar
 } from '@mui/material'
+import { useQuery } from '@tanstack/react-query'
 import {
   filterByPermission,
   getDashboardConfig,
@@ -18,6 +19,11 @@ import { Can } from '../../rbac/Can'
 import { Permission } from '../../rbac/permissions'
 import { ROLE_PERMISSIONS } from '../../rbac/rolePermissions'
 import { usePermission } from '../../rbac/usePermission'
+import {
+  assignTaskToAssignee,
+  getAssigneeOptions,
+  type AssigneeOption
+} from '../../services/assigneesApi'
 import { claimWorkflowTask } from '../../services/dashboardApi'
 import { useAuthStore } from '../../store/authStore'
 import { useDashboardStore } from '../../store/dashboardStore'
@@ -136,6 +142,16 @@ export function Dashboard() {
     filters
   )
 
+  const needsAssigneeOptions = visibleActions.some(
+    (a) => a.id === 'assign_to_me'
+  )
+  const { data: assigneeOptions = [] } = useQuery({
+    queryKey: ['assignee-options'],
+    queryFn: getAssigneeOptions,
+    enabled: needsAssigneeOptions,
+    staleTime: 60_000
+  })
+
   if (!can(Permission.DASHBOARD_VIEW)) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -148,7 +164,7 @@ export function Dashboard() {
     actionId: string,
     row: DashboardTableRow
   ) => {
-    if (actionId === 'claim' || actionId === 'assign_to_me') {
+    if (actionId === 'claim') {
       if (!row.taskId) {
         setToast('No task id available to claim')
         return
@@ -163,6 +179,23 @@ export function Dashboard() {
       return
     }
     setToast(`${actionId} on ${row.idNumber}`)
+  }
+
+  const handleAssignSelect = async (
+    row: DashboardTableRow,
+    assignee: AssigneeOption
+  ) => {
+    if (!row.taskId) {
+      setToast('No task id available to assign')
+      return
+    }
+    try {
+      await assignTaskToAssignee(row.taskId, assignee)
+      setToast(`Assigned ${row.idNumber} to ${assignee.name}`)
+      void refetch()
+    } catch {
+      setToast('Assign failed')
+    }
   }
 
   return (
@@ -219,9 +252,11 @@ export function Dashboard() {
                   Boolean(activeTabDef?.selectable) || hasBulkSelect
                 }
                 selectedIds={selectedIds}
+                assigneeOptions={assigneeOptions}
                 onToggleSelected={toggleSelected}
                 onSelectAll={setSelectedIds}
                 onRowAction={handleRowAction}
+                onAssignSelect={handleAssignSelect}
                 onBulkAction={(actionId) => {
                   setToast(
                     `${actionId} for ${selectedIds.join(', ') || 'none'}`

@@ -2,7 +2,10 @@ import {
   Box,
   Button,
   Checkbox,
+  FormControl,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Table,
   TableBody,
@@ -11,11 +14,16 @@ import {
   TableRow,
   Typography
 } from '@mui/material'
+import type { SelectChangeEvent } from '@mui/material/Select'
 import type { ActionDef, ColumnDef } from '../../config/types'
 import type { DashboardTableRow } from '../../types/workflow'
 import { Can } from '../../rbac/Can'
 import { Permission } from '../../rbac/permissions'
+import type { AssigneeOption } from '../../services/assigneesApi'
 import { brand } from '../../theme/brand'
+
+const UNASSIGNED_DISPLAY = 'Unassigned'
+const ASSIGN_DROPDOWN_ACTIONS = new Set(['assign_to_me'])
 
 type Props = {
   columns: ColumnDef[]
@@ -23,9 +31,11 @@ type Props = {
   actions: ActionDef[]
   selectable: boolean
   selectedIds: string[]
+  assigneeOptions?: AssigneeOption[]
   onToggleSelected: (id: string) => void
   onSelectAll: (ids: string[]) => void
   onRowAction: (actionId: string, row: DashboardTableRow) => void
+  onAssignSelect: (row: DashboardTableRow, assignee: AssigneeOption) => void
   onBulkAction: (actionId: string) => void
 }
 
@@ -35,9 +45,11 @@ export function DashboardTable({
   actions,
   selectable,
   selectedIds,
+  assigneeOptions = [],
   onToggleSelected,
   onSelectAll,
   onRowAction,
+  onAssignSelect,
   onBulkAction
 }: Props) {
   const allIds = rows.map((r) => r.id)
@@ -145,7 +157,9 @@ export function DashboardTable({
                         action={
                           col.actionId ? actionById[col.actionId] : undefined
                         }
+                        assigneeOptions={assigneeOptions}
                         onRowAction={onRowAction}
+                        onAssignSelect={onAssignSelect}
                       />
                     </TableCell>
                   ))}
@@ -163,12 +177,16 @@ function CellContent({
   column,
   row,
   action,
-  onRowAction
+  assigneeOptions,
+  onRowAction,
+  onAssignSelect
 }: {
   column: ColumnDef
   row: DashboardTableRow
   action?: ActionDef
+  assigneeOptions: AssigneeOption[]
   onRowAction: (actionId: string, row: DashboardTableRow) => void
+  onAssignSelect: (row: DashboardTableRow, assignee: AssigneeOption) => void
 }) {
   // Flat row from workflowMapper; no role switches — config supplies `field`.
   const raw = row[column.field as keyof DashboardTableRow]
@@ -177,6 +195,41 @@ function CellContent({
 
   if (!action) {
     return <>{display}</>
+  }
+
+  const isAssignDropdown = ASSIGN_DROPDOWN_ACTIONS.has(action.id)
+  const isUnassigned =
+    display === UNASSIGNED_DISPLAY || display === '—' || raw == null || raw === ''
+
+  // Assign to Me: inline Select instead of a claim/navigate link.
+  if (isAssignDropdown && isUnassigned) {
+    return (
+      <Can permission={action.requiredPermission ?? Permission.DASHBOARD_VIEW}>
+        <FormControl size="small" sx={{ minWidth: 160 }}>
+          <Select
+            displayEmpty
+            value=""
+            onChange={(event: SelectChangeEvent<string>) => {
+              const id = event.target.value
+              const option = assigneeOptions.find((o) => o.id === id)
+              if (option) onAssignSelect(row, option)
+            }}
+            renderValue={() => (
+              <Typography variant="body2" color="text.secondary">
+                Select assignee
+              </Typography>
+            )}
+            inputProps={{ 'aria-label': 'Select assignee' }}
+          >
+            {assigneeOptions.map((option) => (
+              <MenuItem key={option.id} value={option.id}>
+                {option.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Can>
+    )
   }
 
   return (
