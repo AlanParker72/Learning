@@ -6,6 +6,8 @@ Managers see **Unassigned / Team Tasks (O: Team Work) / Completed**. Analysts se
 
 Filters resolve via `tab.filterPermissions ∩ role.permissions` → catalog (`presentation` / `controls` on the filter def). Columns are listed on the tab only — no `COLUMN_*` permissions.
 
+Table UI uses the **company DataTable pattern** (`Spinner` / `Alert` / `DataTable` / `NoResultsView`). Local stubs live under `src/components/company/` until the real package import is wired (see handoff).
+
 ## Quick start
 
 ```bash
@@ -77,11 +79,9 @@ No permission for the tab → empty list. `tabCounts` only for permitted tabs.
 5. Mocks — add `src/services/mocks/<role>.ts` and register it in `mocks/index.ts`.
 6. Backend grants for the same capabilities.
 
-## Removing the temp RoleSwitcher
+## Role (no UI switcher)
 
-1. Delete `src/components/dashboard/RoleSwitcher.tsx`.
-2. Remove its usage from `DashboardHeader.tsx`.
-3. Point `authStore` at real session/auth.
+`authStore.activeRole` defaults to **Q_MANAGER**, or `VITE_DEFAULT_ROLE` when set. Point `setActiveRole` at real session/auth when available.
 
 ## Environment
 
@@ -90,3 +90,13 @@ Copy `.env.example` → `.env`:
 - `VITE_USE_MOCK_API=true` — mock workflow rows (default)
 - `VITE_API_BASE_URL` — axios `baseURL` when mock is off
 - `VITE_WORKFLOW_TASK_ID` — optional list-on-load path `{task_id}`
+- `VITE_DEFAULT_ROLE` — optional authStore default (`Q_MANAGER` | `Q_ANALYST` | `O_MANAGER` | `O_ANALYST`)
+
+## Swap to company DataTable
+
+1. Replace imports in `Dashboard.tsx`:
+   - `../company/DataTable` → real package `DataTable`
+   - `../company/Spinner` / `NoResultsView` → package exports (if provided)
+2. Delete `src/components/company/*` stubs.
+3. Keep the Dashboard branch: loading → Spinner, error → Alert, rows → DataTable, empty → NoResultsView.
+4. Keep column mapping: role `{ field, header }` → `{ field, headerName, renderCell }`, `rowKey="id"`.

@@ -2,11 +2,18 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Alert,
   Box,
-  CircularProgress,
+  Button,
+  Checkbox,
   Container,
+  FormControl,
+  MenuItem,
   Paper,
-  Snackbar
+  Select,
+  Snackbar,
+  Stack,
+  Typography
 } from '@mui/material'
+import type { SelectChangeEvent } from '@mui/material/Select'
 import { useQuery } from '@tanstack/react-query'
 import {
   filterByPermission,
@@ -14,6 +21,7 @@ import {
   resolveActionsForTab,
   resolveFiltersForTab
 } from '../../config/dashboardConfig'
+import type { ActionDef, ColumnDef } from '../../config/types'
 import { useDashboardData } from '../../hooks/useDashboardData'
 import { Can } from '../../rbac/Can'
 import { Permission } from '../../rbac/permissions'
@@ -28,20 +36,27 @@ import { claimWorkflowTask } from '../../services/dashboardApi'
 import { useAuthStore } from '../../store/authStore'
 import { useDashboardStore } from '../../store/dashboardStore'
 import type { DashboardTableRow } from '../../types/workflow'
+import {
+  DataTable,
+  type DataTableColumn
+} from '../company/DataTable'
+import { NoResultsView } from '../company/NoResultsView'
+import { Spinner } from '../company/Spinner'
 import { DashboardFilters as DashboardFiltersBar } from './DashboardFilters'
-import { DashboardHeader } from './DashboardHeader'
-import { DashboardTable } from './DashboardTable'
 import { DashboardTabs } from './DashboardTabs'
+
+const UNASSIGNED_DISPLAY = 'Unassigned'
+const ASSIGN_DROPDOWN_ACTIONS = new Set(['assign_to_me'])
+const PAGE_SIZE = 10
 
 /**
  * Generic dashboard shell — role differences come from config + permissions.
  * No `role === …` branching in presentational children.
  *
- * On mount / when role|tab|filters change: TanStack Query → getDashboardData.
+ * Table UI follows the company DataTable pattern:
+ *   loading → Spinner | error → Alert | rows → DataTable | empty → NoResultsView
  *
- * Filters: tab.filterPermissions ∩ role.permissions → catalog (controls on FilterDef).
- * Actions: standalone only (Claim, Assign, Clear All, …) via actionPermissions ∩ role.
- * Columns: listed on the tab config ⇒ visible (no COLUMN_* permissions).
+ * Columns: role tab `{ field, header }` → DataTable `{ field, headerName, renderCell }`.
  */
 export function Dashboard() {
   const activeRole = useAuthStore((s) => s.activeRole)
@@ -65,12 +80,13 @@ export function Dashboard() {
   const hydrateForRole = useDashboardStore((s) => s.hydrateForRole)
 
   const [toast, setToast] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
   const prevTabRef = useRef<string | null>(null)
 
   const config = getDashboardConfig(activeRole)
   const visibleTabs = filterByPermission(config.tabs, can)
 
-  // Reset tab/filters when temp role changes (not on every tab click)
+  // Reset tab/filters when role changes (authStore / env — no UI switcher)
   useEffect(() => {
     const cfg = getDashboardConfig(activeRole)
     const perms = ROLE_PERMISSIONS[activeRole]
@@ -102,7 +118,6 @@ export function Dashboard() {
     [activeTabDef, rolePermissions]
   )
 
-  // Re-hydrate filter values when the active tab’s filter set changes.
   useEffect(() => {
     if (!activeTabDef) return
     if (prevTabRef.current === activeTabDef.id) return
@@ -124,16 +139,17 @@ export function Dashboard() {
     [activeTabDef, config.actionPermissions, rolePermissions]
   )
 
-  const headerActions = visibleActions.filter((a) => a.placement === 'header')
   const filterBarActions = visibleActions.filter(
     (a) => a.placement === 'filterBar'
   )
   const tableActions = visibleActions.filter(
     (a) => a.placement === 'row' || a.placement === 'bulk'
   )
+  const bulkActions = tableActions.filter((a) => a.placement === 'bulk')
   const hasBulkSelect = visibleActions.some((a) => a.id === 'bulk_select')
+  const selectable =
+    Boolean(activeTabDef?.selectable) || hasBulkSelect
 
-  // Columns listed on the tab config are visible — no COLUMN_* permission gate.
   const visibleColumns = activeTabDef?.columns ?? []
 
   const { data, isLoading, isError, isFetching, refetch } = useDashboardData(
@@ -141,6 +157,13 @@ export function Dashboard() {
     queryTab,
     filters
   )
+
+  const rows = data?.rows ?? []
+
+  // Client-side page resets when the result set identity changes.
+  useEffect(() => {
+    setPage(1)
+  }, [activeRole, queryTab, filters, rows.length])
 
   const needsAssigneeOptions = visibleActions.some(
     (a) => a.id === 'assign_to_me'
@@ -151,14 +174,6 @@ export function Dashboard() {
     enabled: needsAssigneeOptions,
     staleTime: 60_000
   })
-
-  if (!can(Permission.DASHBOARD_VIEW)) {
-    return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert severity="warning">You do not have access to this dashboard.</Alert>
-      </Container>
-    )
-  }
 
   const handleRowAction = async (
     actionId: string,
@@ -198,22 +213,83 @@ export function Dashboard() {
     }
   }
 
+  const actionById = useMemo(
+    () => Object.fromEntries(tableActions.map((a) => [a.id, a])),
+    [tableActions]
+  )
+
+  const pagedRows = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE
+    return rows.slice(start, start + PAGE_SIZE)
+  }, [page, rows])
+
+  const allIds = rows.map((r) => r.id)
+  const allSelected =
+    allIds.length > 0 && allIds.every((id) => selectedIds.includes(id))
+
+  // Role tab columns → company DataTable columns (header → headerName + renderCell).
+  const dataTableColumns = useMemo((): DataTableColumn<DashboardTableRow>[] => {
+    const mapped: DataTableColumn<DashboardTableRow>[] = visibleColumns.map(
+      (col) => ({
+        field: String(col.field),
+        headerName: col.header,
+        renderCell: (row) =>
+          renderRoleCell({
+            column: col,
+            row,
+            action: col.actionId ? actionById[col.actionId] : undefined,
+            assigneeOptions,
+            onRowAction: handleRowAction,
+            onAssignSelect: handleAssignSelect
+          })
+      })
+    )
+
+    if (!selectable) return mapped
+
+    return [
+      {
+        field: '_select',
+        headerName: '',
+        widthPercent: 4,
+        align: 'center',
+        renderCell: (row) => (
+          <Checkbox
+            size="small"
+            checked={selectedIds.includes(row.id)}
+            onChange={() => toggleSelected(row.id)}
+            inputProps={{ 'aria-label': `Select ${row.idNumber}` }}
+          />
+        )
+      },
+      ...mapped
+    ]
+  }, [
+    actionById,
+    assigneeOptions,
+    selectable,
+    selectedIds,
+    toggleSelected,
+    visibleColumns
+  ])
+
+  if (!can(Permission.DASHBOARD_VIEW)) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Alert severity="warning">You do not have access to this dashboard.</Alert>
+      </Container>
+    )
+  }
+
+  const showSpinner = isLoading || (isFetching && !data)
+  const showError = !showSpinner && isError
+  const showTable = !showSpinner && !showError && rows.length > 0
+  const showEmpty = !showSpinner && !showError && rows.length === 0
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', py: 3 }}>
       <Container maxWidth="xl">
         <Paper sx={{ p: { xs: 2, md: 3 } }} elevation={0} variant="outlined">
-          <DashboardHeader
-            config={config}
-            headerActions={headerActions}
-            selectedCount={selectedIds.length}
-            onHeaderAction={(actionId) => {
-              setToast(
-                `${actionId} — ${selectedIds.length || 'no'} selected (UI only; server enforces)`
-              )
-              if (actionId === 'assign_records') clearSelection()
-            }}
-          />
-
           <DashboardTabs
             tabs={visibleTabs}
             activeTab={queryTab}
@@ -237,34 +313,77 @@ export function Dashboard() {
           />
 
           <Can permission={Permission.WIDGET_TABLE}>
-            {isLoading || (isFetching && !data) ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-                <CircularProgress size={32} />
-              </Box>
-            ) : isError ? (
+            {showSpinner ? <Spinner /> : null}
+
+            {showError ? (
               <Alert severity="error">Failed to load dashboard data.</Alert>
-            ) : (
-              <DashboardTable
-                columns={visibleColumns}
-                rows={data?.rows ?? []}
-                actions={tableActions.filter((a) => a.id !== 'bulk_select')}
-                selectable={
-                  Boolean(activeTabDef?.selectable) || hasBulkSelect
-                }
-                selectedIds={selectedIds}
-                assigneeOptions={assigneeOptions}
-                onToggleSelected={toggleSelected}
-                onSelectAll={setSelectedIds}
-                onRowAction={handleRowAction}
-                onAssignSelect={handleAssignSelect}
-                onBulkAction={(actionId) => {
-                  setToast(
-                    `${actionId} for ${selectedIds.join(', ') || 'none'}`
-                  )
-                  clearSelection()
-                }}
-              />
-            )}
+            ) : null}
+
+            {showTable ? (
+              <Stack spacing={1.5}>
+                {selectable ? (
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                  >
+                    <Checkbox
+                      size="small"
+                      checked={allSelected}
+                      indeterminate={
+                        selectedIds.length > 0 && !allSelected
+                      }
+                      onChange={() =>
+                        setSelectedIds(allSelected ? [] : allIds)
+                      }
+                      inputProps={{ 'aria-label': 'Select all rows' }}
+                    />
+                    {bulkActions.length > 0 && selectedIds.length > 0 ? (
+                      <Stack direction="row" spacing={1}>
+                        {bulkActions
+                          .filter((a) => a.id !== 'bulk_select')
+                          .map((action) => (
+                            <Can
+                              key={action.id}
+                              permission={
+                                action.requiredPermission ??
+                                Permission.DASHBOARD_VIEW
+                              }
+                            >
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => {
+                                  setToast(
+                                    `${action.id} for ${selectedIds.join(', ') || 'none'}`
+                                  )
+                                  clearSelection()
+                                }}
+                              >
+                                {action.label} ({selectedIds.length})
+                              </Button>
+                            </Can>
+                          ))}
+                      </Stack>
+                    ) : null}
+                  </Stack>
+                ) : null}
+
+                <DataTable
+                  columns={dataTableColumns}
+                  rows={pagedRows}
+                  rowKey="id"
+                  pagination={{
+                    page,
+                    pageSize: PAGE_SIZE,
+                    total: rows.length,
+                    onPageChange: setPage
+                  }}
+                />
+              </Stack>
+            ) : null}
+
+            {showEmpty ? <NoResultsView /> : null}
           </Can>
         </Paper>
       </Container>
@@ -277,6 +396,83 @@ export function Dashboard() {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
     </Box>
+  )
+}
+
+function renderRoleCell({
+  column,
+  row,
+  action,
+  assigneeOptions,
+  onRowAction,
+  onAssignSelect
+}: {
+  column: ColumnDef
+  row: DashboardTableRow
+  action?: ActionDef
+  assigneeOptions: AssigneeOption[]
+  onRowAction: (actionId: string, row: DashboardTableRow) => void
+  onAssignSelect: (row: DashboardTableRow, assignee: AssigneeOption) => void
+}) {
+  const raw = row[column.field as keyof DashboardTableRow]
+  const display =
+    raw == null || raw === '' || typeof raw === 'object' ? '—' : String(raw)
+
+  if (!action) {
+    return <>{display}</>
+  }
+
+  const isAssignDropdown = ASSIGN_DROPDOWN_ACTIONS.has(action.id)
+  const isUnassigned =
+    display === UNASSIGNED_DISPLAY ||
+    display === '—' ||
+    raw == null ||
+    raw === ''
+
+  if (isAssignDropdown && isUnassigned) {
+    return (
+      <Can permission={action.requiredPermission ?? Permission.DASHBOARD_VIEW}>
+        <FormControl size="small" sx={{ minWidth: 160 }}>
+          <Select
+            displayEmpty
+            value=""
+            onChange={(event: SelectChangeEvent<string>) => {
+              const id = event.target.value
+              const option = assigneeOptions.find((o) => o.id === id)
+              if (option) onAssignSelect(row, option)
+            }}
+            renderValue={() => (
+              <Typography variant="body2" color="text.secondary">
+                Select assignee
+              </Typography>
+            )}
+            inputProps={{ 'aria-label': 'Select assignee' }}
+          >
+            {assigneeOptions.map((option) => (
+              <MenuItem key={option.id} value={option.id}>
+                {option.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Can>
+    )
+  }
+
+  // Claim / reassign: plain text + action control
+  return (
+    <Stack direction="row" spacing={1} alignItems="center">
+      <Typography variant="body2">{display}</Typography>
+      <Can permission={action.requiredPermission ?? Permission.DASHBOARD_VIEW}>
+        <Button
+          size="small"
+          variant="text"
+          onClick={() => onRowAction(action.id, row)}
+        >
+          {action.label}
+        </Button>
+      </Can>
+    </Stack>
   )
 }
 
